@@ -92,3 +92,60 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Markdown specific styles */
+.prose {
+  color: inherit;
+}
+
+.prose pre {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.prose code {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.prose blockquote {
+  border-left-color: hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: hsl(var(--foreground));
+}
+
+.prose strong {
+  color: hsl(var(--foreground));
+}
+
+.prose table {
+  border-color: hsl(var(--border));
+}
+
+.prose th, .prose td {
+  border-color: hsl(var(--border));
+}
+
+.prose th {
+  background-color: hsl(var(--muted));
+}
+
+.prose a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  opacity: 0.8;
+}

@@ -67,6 +67,18 @@ import { MentionsInput, Mention } from "react-mentions";
 import SplashScreen from "../splashScreen";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
+
+// Type definitions for react-markdown components
+type ComponentProps = {
+  children?: React.ReactNode;
+  className?: string;
+  [key: string]: any;
+};
 
 interface Message {
   id: string;
@@ -1260,7 +1272,77 @@ export default function ChatPage() {
                   )}
                   <div>
                     <div className="whitespace-pre-wrap">
-                      <p>{message.content === '...' ? <LoadingDots /> : message.content}</p>
+                      {message.content === '...' ? (
+                        <LoadingDots />
+                      ) : (
+                        <div className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-pre:p-3 prose-pre:rounded-md prose-code:text-pink-600 dark:prose-code:text-pink-400">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                            rehypePlugins={[rehypeHighlight]}
+                            components={{
+                              pre: ({ children, ...props }: ComponentProps) => (
+                                <pre
+                                  {...props}
+                                  className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md overflow-x-auto"
+                                >
+                                  {children}
+                                </pre>
+                              ),
+                              code: ({ children, className, ...props }: ComponentProps) => {
+                                const match = /language-(\w+)/.exec(className || '');
+                                return match ? (
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                ) : (
+                                  <code
+                                    className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono"
+                                    {...props}
+                                  >
+                                    {children}
+                                  </code>
+                                );
+                              },
+                              blockquote: ({ children, ...props }: ComponentProps) => (
+                                <blockquote
+                                  {...props}
+                                  className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2"
+                                >
+                                  {children}
+                                </blockquote>
+                              ),
+                              table: ({ children, ...props }: ComponentProps) => (
+                                <div className="overflow-x-auto">
+                                  <table
+                                    {...props}
+                                    className="min-w-full border-collapse border border-gray-300 dark:border-gray-600"
+                                  >
+                                    {children}
+                                  </table>
+                                </div>
+                              ),
+                              th: ({ children, ...props }: ComponentProps) => (
+                                <th
+                                  {...props}
+                                  className="border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-left font-semibold"
+                                >
+                                  {children}
+                                </th>
+                              ),
+                              td: ({ children, ...props }: ComponentProps) => (
+                                <td
+                                  {...props}
+                                  className="border border-gray-300 dark:border-gray-600 px-3 py-2"
+                                >
+                                  {children}
+                                </td>
+                              ),
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <p
