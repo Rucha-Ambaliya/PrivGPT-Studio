@@ -49,6 +49,7 @@ import {
   ImageIcon,
   PlusCircle,
   Square,
+  ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -129,7 +130,7 @@ export default function ChatPage() {
           rehypePlugins={[rehypeKatex]}
           components={{
             // Code blocks with syntax highlighting
-            code({ node, inline, className, children, ...props }) {
+            code({ node, inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
               
@@ -176,7 +177,7 @@ export default function ChatPage() {
                     </button>
                   </div>
                   <SyntaxHighlighter
-                    style={oneDark}
+                    style={oneDark as any}
                     language={language}
                     PreTag="div"
                     className="!mt-0 !rounded-t-none"
@@ -327,10 +328,28 @@ export default function ChatPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [streamingEnabled, setStreamingEnabled] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Handle responsive sidebar behavior
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const stopGeneration = () => {
@@ -1130,22 +1149,53 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-background">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-[20%] border-r bg-muted/30 flex flex-col overflow-y-auto scrollbar-none">
+      <div className={`fixed lg:static inset-y-0 left-0 z-50 bg-background border-r transform transition-all duration-300 ease-in-out ${
+        isSidebarOpen
+          ? 'translate-x-0 w-80 lg:w-80'
+          : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0'
+      }`}>
         {/* Sidebar Header */}
-        <div className="p-4 border-b">
+        <div className={`p-4 border-b ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
           <div className="flex items-center justify-between mb-4">
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold">PrivGPT Studio</span>
+              <span className="text-xl font-bold lg:block">PrivGPT Studio</span>
             </Link>
-            <ThemeToggle />
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
+              {/* Desktop close button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden lg:flex"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="block lg:hidden"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="space-y-2">
+          <nav className={`space-y-2 ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
             <Collapsible
               open={isChatSessionsCollapsed}
               onOpenChange={setIsChatSessionsCollapsed}
@@ -1173,7 +1223,13 @@ export default function ChatPage() {
                   <div
                     key={index}
                     className="group flex items-center justify-between px-2 py-1 rounded-md hover:bg-muted/50 cursor-pointer"
-                    onClick={() => handleCurrentChatSession(session.id)}
+                    onClick={() => {
+                      handleCurrentChatSession(session.id);
+                      // Close sidebar on mobile after selecting a chat
+                      if (window.innerWidth < 1024) {
+                        setIsSidebarOpen(false);
+                      }
+                    }}
                   >
                     <div className="flex-1 min-w-0">
                       {editingSessionId === session.id ? (
@@ -1248,7 +1304,13 @@ export default function ChatPage() {
               ref={newChatSessionBtnRef}
               variant="ghost"
               className="w-full justify-start"
-              onClick={handleNewChatSession}
+              onClick={() => {
+                handleNewChatSession();
+                // Close sidebar on mobile after creating new chat
+                if (window.innerWidth < 1024) {
+                  setIsSidebarOpen(false);
+                }
+              }}
             >
               <PlusCircle className="w-4 h-4 mr-2" />
               New Chat
@@ -1271,7 +1333,7 @@ export default function ChatPage() {
         </div>
 
         {/* Model Selection */}
-        <div className="p-4 border-b">
+        <div className={`p-4 border-b ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold">AI Model</h3>
             <div className="flex items-center space-x-2">
@@ -1323,7 +1385,7 @@ export default function ChatPage() {
         </div>
 
         {/* Usage Stats */}
-        <div className="p-4 flex-1">
+        <div className={`p-4 flex-1 ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
           <h3 className="font-semibold mb-3">Usage Stats</h3>
           <div className="space-y-3">
             <Card>
@@ -1373,15 +1435,27 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Panel */}
-      <div className="flex-1 flex flex-col w-[80%]">
-        {/* Chat Header */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? 'lg:ml-0' : 'lg:ml-0'
+      }`}>
+        {/* Chat Header with Hamburger */}
         <div className="border-b p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold">Chat Interface</h1>
-              <p className="text-sm text-muted-foreground">
-                Currently using: {selectedModel}
-              </p>
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`${isSidebarOpen ? "lg:hidden" : ""}`}
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-xl font-semibold">Chat Interface</h1>
+                <p className="text-sm text-muted-foreground">
+                  Currently using: {selectedModel}
+                </p>
+              </div>
             </div>
             <Badge
               variant={selectedModelType === "cloud" ? "default" : "secondary"}
