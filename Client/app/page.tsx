@@ -9,7 +9,7 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import SplashScreen from "./splashScreen";
 import { useState, useEffect } from "react";
-import { Head } from "react-day-picker";
+
 
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
@@ -22,20 +22,25 @@ export default function HomePage() {
   if (showSplash) return <SplashScreen />;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f0f4ff]">
+
       {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-primary-foreground" />
+      <header className="bg-gradient-to-r from-[#2e3b70] to-[#3f4f8c] border-b border-gray-800">
+        <div className="container mx-auto px-6 py-6 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+              <Zap className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold">PrivGPT Studio</span>
+            <span className="text-3xl md:text-4xl font-bold text-white">PrivGPT Studio</span>
           </div>
           <div className="flex items-center space-x-4">
             <ThemeToggle />
             <Link href="/chat">
-              <Button variant="outline">Try Chat</Button>
+              <Button
+                className="bg-blue-500 text-white border border-blue-500 hover:bg-white hover:text-blue-600 transition-colors duration-300 px-4 py-2 rounded-lg font-semibold"
+              >
+                Try Chat
+              </Button>
             </Link>
           </div>
         </div>
@@ -44,18 +49,17 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
-          <Badge variant="secondary" className="mb-4">
+          <Badge variant="secondary" className="mb-4 bg-blue-100 text-blue-800">
             🚀 Now supporting local AI models
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
             PrivGPT Studio
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Experience the future of AI conversations with both cloud-powered
-            Gemini and privacy-focused local models
+          <p className="text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto">
+            Experience the future of AI conversations with both cloud-powered Gemini and privacy-focused local models
           </p>
           <Link href="/chat">
-            <Button size="lg" className="text-lg px-8 py-6">
+            <Button size="lg" className="text-lg px-8 py-6 bg-blue-700 text-white hover:bg-blue-800">
               Start for Free
             </Button>
           </Link>
@@ -63,24 +67,24 @@ export default function HomePage() {
       </section>
 
       {/* Key Stats */}
-      <section className="py-16 px-4 bg-muted/50">
+      <section className="py-16 px-4 bg-[#e6edff]">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">50K+</div>
-              <div className="text-muted-foreground">Active Users</div>
+              <div className="text-3xl font-bold text-blue-800 mb-2">50K+</div>
+              <div className="text-gray-700">Active Users</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">99.9%</div>
-              <div className="text-muted-foreground">Uptime</div>
+              <div className="text-3xl font-bold text-blue-800 mb-2">99.9%</div>
+              <div className="text-gray-700">Uptime</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">15+</div>
-              <div className="text-muted-foreground">Supported Models</div>
+              <div className="text-3xl font-bold text-blue-800 mb-2">15+</div>
+              <div className="text-gray-700">Supported Models</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-2">24/7</div>
-              <div className="text-muted-foreground">Support</div>
+              <div className="text-3xl font-bold text-blue-800 mb-2">24/7</div>
+              <div className="text-gray-700">Support</div>
             </div>
           </div>
         </div>
@@ -89,60 +93,43 @@ export default function HomePage() {
       {/* How It Works */}
       <section className="py-16 px-4">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-primary">1</span>
+            {["Choose Your Model", "Start Chatting", "Get Results"].map((title, index) => (
+              <div key={index} className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-blue-700">{index + 1}</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">{title}</h3>
+                <p className="text-gray-700">
+                  {index === 0
+                    ? "Select between cloud-powered Gemini or privacy-focused local models"
+                    : index === 1
+                      ? "Ask questions, get help, or have natural conversations"
+                      : "Receive intelligent, contextual responses in real-time"}
+                </p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Choose Your Model</h3>
-              <p className="text-muted-foreground">
-                Select between cloud-powered Gemini or privacy-focused local
-                models
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-primary">2</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Start Chatting</h3>
-              <p className="text-muted-foreground">
-                Ask questions, get help, or have natural conversations
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-primary">3</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Get Results</h3>
-              <p className="text-muted-foreground">
-                Receive intelligent, contextual responses in real-time
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Feature Comparison */}
-      <section className="py-16 px-4 bg-muted/50">
+      <section className="py-16 px-4 bg-[#e6edff]">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
             Gemini vs Local Models
           </h2>
           <div className="max-w-4xl mx-auto">
             <Card>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full text-gray-700">
                     <thead>
                       <tr className="border-b">
                         <th className="text-left p-4 font-semibold">Feature</th>
-                        <th className="text-center p-4 font-semibold">
-                          Gemini (Cloud)
-                        </th>
-                        <th className="text-center p-4 font-semibold">
-                          Local Models
-                        </th>
+                        <th className="text-center p-4 font-semibold">Gemini (Cloud)</th>
+                        <th className="text-center p-4 font-semibold">Local Models</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -199,102 +186,44 @@ export default function HomePage() {
       {/* Testimonials */}
       <section className="py-16 px-4">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
             What Our Users Say
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "The local model option is a game-changer for our
-                  privacy-sensitive work. Amazing performance!"
-                </p>
-                <div className="flex items-center">
-                  <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold">John Doe</div>
-                    <div className="text-sm text-muted-foreground">
-                      Security Engineer
+            {[
+              { name: "John Doe", role: "Security Engineer", text: "The local model option is a game-changer for our privacy-sensitive work. Amazing performance!" },
+              { name: "Sarah Miller", role: "Product Manager", text: "Seamless switching between Cloud and local models. Perfect for different use cases." },
+              { name: "Mike Johnson", role: "Developer", text: "Best AI chat interface I've used. Clean, fast, and incredibly intuitive." },
+            ].map((user, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex items-center mb-4">
+                    {[...Array(5)].map((_, j) => (
+                      <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4">{user.text}</p>
+                  <div className="flex items-center">
+                    <Avatar className="w-10 h-10 mr-3">
+                      <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                      <AvatarFallback>{user.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-semibold text-gray-800">{user.name}</div>
+                      <div className="text-sm text-gray-500">{user.role}</div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "Seamless switching between Cloud and local models. Perfect
-                  for different use cases."
-                </p>
-                <div className="flex items-center">
-                  <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                    <AvatarFallback>SM</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold">Sarah Miller</div>
-                    <div className="text-sm text-muted-foreground">
-                      Product Manager
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "Best AI chat interface I've used. Clean, fast, and incredibly
-                  intuitive."
-                </p>
-                <div className="flex items-center">
-                  <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                    <AvatarFallback>MJ</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold">Mike Johnson</div>
-                    <div className="text-sm text-muted-foreground">
-                      Developer
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Live Demo Preview */}
-      <section className="py-16 px-4 bg-muted/50">
+      {/* Live Demo */}
+      <section className="py-16 px-4 bg-[#e6edff]">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
             See It In Action
           </h2>
           <div className="max-w-2xl mx-auto">
@@ -306,55 +235,48 @@ export default function HomePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 h-64 overflow-y-auto bg-muted/30 rounded-lg p-4">
+                <div className="space-y-4 h-64 overflow-y-auto bg-blue-50 rounded-lg p-4">
+                  {/* Chat bubbles */}
                   <div className="flex justify-end">
-                    <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-xs">
+                    <div className="bg-blue-700 text-white rounded-lg px-3 py-2 max-w-xs">
                       Give me 3 fun facts about space.
                     </div>
                   </div>
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-3 py-2 max-w-xs whitespace-pre-wrap">
-                      <div className="prose prose-sm dark:prose-invert">
-                        1. A day on Venus is longer than its year<br></br>
-                        2. Neutron stars can spin 600 times/sec<br></br>
-                        3. Space isn’t completely silent!
-                      </div>
+                    <div className="bg-blue-100 rounded-lg px-3 py-2 max-w-xs whitespace-pre-wrap text-gray-700">
+                      1. A day on Venus is longer than its year<br />2. Neutron stars can spin 600 times/sec<br />3. Space isn’t completely silent!
                     </div>
                   </div>
-
                   <div className="flex justify-end">
-                    <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-xs">
+                    <div className="bg-blue-700 text-white rounded-lg px-3 py-2 max-w-xs">
                       Explain AI like I'm 5.
                     </div>
                   </div>
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-3 py-2 max-w-xs">
-                      It's like a super-smart robot brain that learns by looking
-                      at patterns!
+                    <div className="bg-blue-100 rounded-lg px-3 py-2 max-w-xs text-gray-700">
+                      It's like a super-smart robot brain that learns by looking at patterns!
                     </div>
                   </div>
-
                   <div className="flex justify-end">
-                    <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-xs">
+                    <div className="bg-blue-700 text-white rounded-lg px-3 py-2 max-w-xs">
                       Write a one-line love poem.
                     </div>
                   </div>
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-3 py-2 max-w-xs whitespace-pre-wrap">
+                    <div className="bg-blue-100 rounded-lg px-3 py-2 max-w-xs whitespace-pre-wrap text-gray-700">
                       Your smile rewrites the code in my heart.
                     </div>
                   </div>
-
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-3 py-2 max-w-xs">
-                      <div className="animate-pulse">Typing...</div>
+                    <div className="bg-blue-100 rounded-lg px-3 py-2 max-w-xs">
+                      <div className="animate-pulse text-gray-700">Typing...</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 text-center">
                   <Link href="/chat">
-                    <Button>Try It Yourself</Button>
+                    <Button className="bg-blue-700 text-white hover:bg-blue-800">Try It Yourself</Button>
                   </Link>
                 </div>
               </CardContent>
@@ -364,86 +286,64 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-12 px-4">
+      <footer className="bg-gradient-to-r from-[#2e3b70] to-[#3f4f8c] border-t border-gray-800 py-12 px-4 text-white">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-primary-foreground" />
+                <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">PrivGPT Studio</span>
+                <span className="text-xl font-bold text-white">PrivGPT Studio</span>
               </div>
-              <p className="text-muted-foreground">
-                The future of AI conversations, powered by both cloud and local
-                models.
+              <p className="text-gray-300">
+                The future of AI conversations, powered by both cloud and local models.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Product</h3>
-              <ul className="space-y-2 text-muted-foreground">
+              <h3 className="font-semibold mb-4 text-white">Product</h3>
+              <ul className="space-y-2 text-gray-300">
                 <li>
-                  <Link href="/chat" className="hover:text-foreground">
-                    Chat Interface
-                  </Link>
+                  <Link href="/chat" className="hover:text-white">Chat Interface</Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground">
-                    API Access
-                  </Link>
+                  <Link href="#" className="hover:text-white">API Access</Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground">
-                    Model Library
-                  </Link>
+                  <Link href="#" className="hover:text-white">Model Library</Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Resources</h3>
-              <ul className="space-y-2 text-muted-foreground">
+              <h3 className="font-semibold mb-4 text-white">Resources</h3>
+              <ul className="space-y-2 text-gray-300">
                 <li>
-                  <Link href="#" className="hover:text-foreground">
-                    Documentation
-                  </Link>
+                  <Link href="#" className="hover:text-white">Documentation</Link>
                 </li>
                 <li>
-                  <Link href="/privacy-policy" className="hover:text-foreground">
-                    Privacy Policy
-                  </Link>
+                  <Link href="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="hover:text-foreground">
-                    Terms of Service
-                  </Link>
+                  <Link href="/terms" className="hover:text-white">Terms of Service</Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Connect</h3>
+              <h3 className="font-semibold mb-4 text-white">Connect</h3>
               <div className="flex space-x-4">
-                <Link
-                  href="#"
-                  className="text-muted-foreground hover:text-foreground"
-                >
+                <Link href="#" className="text-gray-300 hover:text-white">
                   <Github className="w-5 h-5" />
                 </Link>
-                <Link
-                  href="#"
-                  className="text-muted-foreground hover:text-foreground"
-                >
+                <Link href="#" className="text-gray-300 hover:text-white">
                   <Twitter className="w-5 h-5" />
                 </Link>
-                <Link
-                  href="#"
-                  className="text-muted-foreground hover:text-foreground"
-                >
+                <Link href="#" className="text-gray-300 hover:text-white">
                   <Mail className="w-5 h-5" />
                 </Link>
               </div>
             </div>
           </div>
-          <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2025 PrivGPT Studio. All rights reserved.</p>
           </div>
         </div>
