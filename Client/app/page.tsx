@@ -9,6 +9,8 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import SplashScreen from "./splashScreen";
 import { useState, useEffect } from "react";
+import { Head } from "react-day-picker";
+import ScrollToTop from "@/components/ui/scroll-to-top";
 
 
 export default function HomePage() {
@@ -321,7 +323,14 @@ export default function HomePage() {
                   <Link href="#" className="hover:text-white">Documentation</Link>
                 </li>
                 <li>
-                  <Link href="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
+
+                  <Link
+                    href="/privacy-policy"
+                    className="hover:text-foreground"
+                  >
+                    Privacy Policy
+                  </Link>
+
                 </li>
                 <li>
                   <Link href="/terms" className="hover:text-white">Terms of Service</Link>
@@ -348,6 +357,7 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      <ScrollToTop />
     </div>
   );
 }
