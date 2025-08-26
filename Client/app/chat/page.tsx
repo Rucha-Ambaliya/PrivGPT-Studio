@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { isPageStatic } from "next/dist/build/utils";
 
 interface Message {
   id: string;
@@ -101,7 +102,7 @@ export default function ChatPage() {
   // Loading dots animation component
   const LoadingDots = () => {
     const [dots, setDots] = useState('.');
-    
+
     useEffect(() => {
       const interval = setInterval(() => {
         setDots(prev => {
@@ -110,10 +111,10 @@ export default function ChatPage() {
           return '.';
         });
       }, 500);
-      
+
       return () => clearInterval(interval);
     }, []);
-    
+
     return <span>{dots}</span>;
   };
 
@@ -133,30 +134,29 @@ export default function ChatPage() {
             code({ node, inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
-              
+
               // Better inline detection - check multiple conditions
-              const isInline = inline || 
-                               !className || 
-                               !String(children).includes('\n') ||
-                               (String(children).trim().split('\n').length === 1 && String(children).length < 100);
-              
+              const isInline = inline ||
+                !className ||
+                !String(children).includes('\n') ||
+                (String(children).trim().split('\n').length === 1 && String(children).length < 100);
+
               // Debug log to see what's happening (remove after testing)
-              console.log('Code rendering:', { 
-                inline, 
-                isInline, 
-                className, 
+              console.log('Code rendering:', {
+                inline,
+                isInline,
+                className,
                 content: String(children),
                 hasNewlines: String(children).includes('\n')
               });
-              
+
               return isInline ? (
                 // Inline code
-                <code 
-                  className={`px-1.5 py-0.5 rounded text-sm font-mono ${
-                    isUser 
-                      ? "bg-primary-foreground/10 text-primary-foreground" 
+                <code
+                  className={`px-1.5 py-0.5 rounded text-sm font-mono ${isUser
+                      ? "bg-primary-foreground/10 text-primary-foreground"
                       : "bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400"
-                  }`}
+                    }`}
                   {...props}
                 >
                   {children}
@@ -434,7 +434,7 @@ export default function ChatPage() {
           );
 
           // ✅ Always keep welcomeSession first in the list
-          setChatSessions([welcomeSession, ...transformedSessions]);
+          setChatSessions([...transformedSessions]);
 
           // ✅ Only reset to welcomeSession if you are currently on it
           if (sessionId === welcomeSession.id || !sessionId) {
@@ -458,13 +458,13 @@ export default function ChatPage() {
               timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
               ...(msg.uploaded_file
                 ? {
-                    file: {
-                      name: msg.uploaded_file.name,
-                      size: msg.uploaded_file.size,
-                      type: msg.uploaded_file.type,
-                      file: msg.uploaded_file.file,
-                    } as UploadedFile,
-                  }
+                  file: {
+                    name: msg.uploaded_file.name,
+                    size: msg.uploaded_file.size,
+                    type: msg.uploaded_file.type,
+                    file: msg.uploaded_file.file,
+                  } as UploadedFile,
+                }
                 : {}),
             })
           );
@@ -479,9 +479,11 @@ export default function ChatPage() {
 
     fetchChatSessionHistory();
   }, [sessionId, editedName]);
-  if (newChatSessionBtnRef.current) {
-    newChatSessionBtnRef.current.disabled = true;
-  }
+  useEffect(() => {
+    if (newChatSessionBtnRef.current && !showSplash) {
+      newChatSessionBtnRef.current.disabled = true;
+    }
+  },[showSplash]);
   useEffect(() => {
     if (chatSessions.some((session) => session.id === "1")) {
       // welcomeSession exists, disable new chat button
@@ -490,7 +492,7 @@ export default function ChatPage() {
       }
     } else {
       // no welcome session, allow new chat
-      if (newChatSessionBtnRef.current) {
+      if (newChatSessionBtnRef.current && sessionId != "1") {
         newChatSessionBtnRef.current.disabled = false;
       }
     }
@@ -554,7 +556,7 @@ export default function ChatPage() {
     const endpoint = uploadedFile || !streamingEnabled
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`
       : `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/stream`;
-    
+
     // Only set typing indicator for file uploads (non-streaming cases) or when streaming is disabled
     if (uploadedFile || !streamingEnabled) {
       setIsTyping(true);
@@ -668,14 +670,14 @@ export default function ChatPage() {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
-                
+
                 switch (data.type) {
                   case 'session_info':
                     if (data.session_id && data.session_id !== sessionId) {
                       finalSessionId = data.session_id;
                     }
                     break;
-                    
+
                   case 'chunk':
                     // If this is the first chunk and we still have "..." as content, clear it first
                     if (streamedContent === "" && data.text) {
@@ -684,15 +686,15 @@ export default function ChatPage() {
                       streamedContent += data.text;
                     }
                     // Update the temporary message with streamed content
-                    setMessages((prev) => 
-                      prev.map((msg) => 
-                        msg.id === tempAssistantMessage.id 
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === tempAssistantMessage.id
                           ? { ...msg, content: streamedContent }
                           : msg
                       )
                     );
                     break;
-                    
+
                   case 'complete':
                     if (data.session_id && sessionId === "1") {
                       setSessionId(data.session_id);
@@ -704,24 +706,24 @@ export default function ChatPage() {
                         ])
                       );
                     }
-                    
+
                     // Update final message with timestamp
-                    setMessages((prev) => 
-                      prev.map((msg) => 
-                        msg.id === tempAssistantMessage.id 
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === tempAssistantMessage.id
                           ? { ...msg, content: streamedContent, timestamp: new Date(data.timestamp) }
                           : msg
                       )
                     );
-                    
+
                     latencyValue = data.latency?.toString() || "0";
                     break;
-                    
+
                   case 'error':
                     streamedContent = data.message;
-                    setMessages((prev) => 
-                      prev.map((msg) => 
-                        msg.id === tempAssistantMessage.id 
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === tempAssistantMessage.id
                           ? { ...msg, content: streamedContent }
                           : msg
                       )
@@ -749,26 +751,26 @@ export default function ChatPage() {
       if (error.name === 'AbortError') {
         console.log('Generation was stopped by user');
         // Update the temp message to show it was stopped
-        setMessages((prev) => 
-          prev.map((msg) => 
-            msg.id === tempAssistantMessage.id 
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempAssistantMessage.id
               ? { ...msg, content: (msg.content || '') + '\n\n[Generation stopped by user]' }
               : msg
           )
         );
       } else {
         console.error("Failed to receive response from AI", error);
-        
+
         // Update the temp message with error
-        setMessages((prev) => 
-          prev.map((msg) => 
-            msg.id === tempAssistantMessage.id 
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempAssistantMessage.id
               ? { ...msg, content: "Failed to get response from AI. Please try again." }
               : msg
           )
         );
       }
-      
+
       setIsStreaming(false);
       setAbortController(null);
     }
@@ -957,7 +959,7 @@ export default function ChatPage() {
         setChatSessions((prev) =>
           prev.filter((chatSession) => chatSession.id !== "1")
         );
-        if (newChatSessionBtnRef.current) {
+        if (newChatSessionBtnRef.current && id != "1") {
           newChatSessionBtnRef.current.disabled = false;
         }
       }
@@ -979,13 +981,13 @@ export default function ChatPage() {
           timestamp: new Date(msg.timestamp),
           ...(msg.uploaded_file
             ? {
-                file: {
-                  name: msg.uploaded_file.name,
-                  size: msg.uploaded_file.size,
-                  type: msg.uploaded_file.type,
-                  file: msg.uploaded_file.file,
-                } as UploadedFile,
-              }
+              file: {
+                name: msg.uploaded_file.name,
+                size: msg.uploaded_file.size,
+                type: msg.uploaded_file.type,
+                file: msg.uploaded_file.file,
+              } as UploadedFile,
+            }
             : {}),
         })
       );
@@ -1151,18 +1153,17 @@ export default function ChatPage() {
     <div className="flex h-screen bg-background">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-50 bg-background border-r transform transition-all duration-300 ease-in-out ${
-        isSidebarOpen
+      <div className={`fixed lg:static inset-y-0 left-0 z-50 bg-background border-r transform transition-all duration-300 ease-in-out ${isSidebarOpen
           ? 'translate-x-0 w-80 lg:w-80'
           : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0'
-      }`}>
+        }`}>
         {/* Sidebar Header */}
         <div className={`p-4 border-b ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
           <div className="flex items-center justify-between mb-4">
@@ -1435,9 +1436,8 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Panel */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-        isSidebarOpen ? 'lg:ml-0' : 'lg:ml-0'
-      }`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'lg:ml-0' : 'lg:ml-0'
+        }`}>
         {/* Chat Header with Hamburger */}
         <div className="border-b p-4">
           <div className="flex items-center justify-between">
@@ -1470,16 +1470,14 @@ export default function ChatPage() {
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"
+                }`}
             >
               <div
-                className={`flex items-start space-x-2 max-w-2xl ${
-                  message.role === "user"
+                className={`flex items-start space-x-2 max-w-2xl ${message.role === "user"
                     ? "flex-row-reverse space-x-reverse"
                     : ""
-                }`}
+                  }`}
               >
                 <Avatar className="w-8 h-8">
                   <AvatarFallback>
@@ -1487,11 +1485,10 @@ export default function ChatPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div
-                  className={`rounded-lg px-4 py-2 ${
-                    message.role === "user"
+                  className={`rounded-lg px-4 py-2 ${message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
-                  }`}
+                    }`}
                 >
                   {message.file && (
                     <div className="mt-2 flex items-center space-x-2 bg-muted/50 rounded-lg p-2 max-w-xs mb-3">
@@ -1507,9 +1504,9 @@ export default function ChatPage() {
                     </div>
                   )}
                   <div>
-                    <MessageContent 
-                      content={message.content} 
-                      isLoading={message.content === '...'} 
+                    <MessageContent
+                      content={message.content}
+                      isLoading={message.content === '...'}
                       isUser={message.role === "user"}
                     />
                   </div>
