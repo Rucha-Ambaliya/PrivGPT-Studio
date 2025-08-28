@@ -224,7 +224,7 @@ export default function HomePage() {
                 </p>
                 <div className="flex items-center">
                   <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                 <AvatarImage src="https://salondesmaires-po.fr/wp-content/uploads/2015/04/speaker-3-v2.jpg" />
                     <AvatarFallback>JD</AvatarFallback>
                   </Avatar>
                   <div>
@@ -252,7 +252,7 @@ export default function HomePage() {
                 </p>
                 <div className="flex items-center">
                   <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                    <AvatarImage src="https://s3.amazonaws.com/media.mixrank.com/profilepic/30051c3ae8729c984c3c9d8a51ba7df8" />
                     <AvatarFallback>SM</AvatarFallback>
                   </Avatar>
                   <div>
@@ -280,7 +280,7 @@ export default function HomePage() {
                 </p>
                 <div className="flex items-center">
                   <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                    <AvatarImage src="https://tse1.mm.bing.net/th/id/OIP.6FXhGomoaY1IKhQp0zFPfwHaEK?rs=1&pid=ImgDetMain&o=7&rm=3" />
                     <AvatarFallback>MJ</AvatarFallback>
                   </Avatar>
                   <div>
