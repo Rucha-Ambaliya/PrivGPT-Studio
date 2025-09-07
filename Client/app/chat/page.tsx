@@ -163,7 +163,7 @@ export default function ChatPage() {
           />
           <meta
             property="og:image"
-            content="https://privgpt-studio.vercel.app/logo.png"
+            content="https://privgpt-studio.vercel.app/assets/logo-dark.svg"
           />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
@@ -181,7 +181,7 @@ export default function ChatPage() {
           />
           <meta
             name="twitter:image"
-            content="https://privgpt-studio.vercel.app/logo.png"
+            content="https://privgpt-studio.vercel.app/assets/logo-dark.svg"
           />
 
           {/* Canonical */}

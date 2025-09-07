@@ -1,4 +1,8 @@
-# <p align=center> PrivGPT Studio </p>
+# <p align=center> PrivGPT## 🔗 Quick Links
+
+- [🚀 Demo](#-demo)
+- [🌐 Live Project](#-live-project)
+- [💡 Why It's Needed](#-why-its-needed)dio </p>
 
 <p align=center> <b>Your private AI studio — versatile, secure, and all‑in‑one.</b> </p>
 
@@ -43,6 +47,10 @@
 ## 🎥 Demo
 
 https://github.com/user-attachments/assets/fcaacd82-20ee-4cb0-9510-b5734b502810
+
+## 🚀 Live Project
+
+Check out the live demo: [**PrivGPT Studio**](https://privgpt-studio.vercel.app/)
 
 <h3 align="right"><a href="#top">⬆️</a></h3>
 

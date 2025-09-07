@@ -1,12 +1,16 @@
-import { Zap } from "lucide-react";
+import Image from "next/image";
 
 export default function SplashScreen() {
   return (
     <div className="flex items-center justify-center h-screen w-screen bg-white">
       <h1 className="flex items-center text-4xl font-bold text-black">
-        <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-5">
-          <Zap className="w-9 h-9 text-primary-foreground animate-pulse font-bold" />
-        </div>
+        <Image
+          src="/assets/logo-icon-dark.svg"
+          alt="PrivGPT Studio Logo"
+          width={48}
+          height={48}
+          className="mr-5 animate-pulse"
+        />
         PrivGPT Pro
       </h1>
     </div>

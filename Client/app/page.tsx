@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Zap, Star, Github, Twitter, Mail, Menu } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { ThemeToggle } from "@/components/theme-toggle";
 import SplashScreen from "./splashScreen";
 import { useState, useEffect } from "react";
@@ -40,9 +41,20 @@ export default function HomePage() {
       <header className="border-b sticky top-0 z-50 bg-background">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <Image
+              src="/assets/logo-icon-dark.svg"
+              alt="PrivGPT Studio Logo"
+              width={32}
+              height={32}
+              className="dark:hidden"
+            />
+            <Image
+              src="/assets/logo-icon-light.svg"
+              alt="PrivGPT Studio Logo"
+              width={32}
+              height={32}
+              className="hidden dark:block"
+            />
             <span className="text-xl font-bold">PrivGPT Studio</span>
           </div>
 
