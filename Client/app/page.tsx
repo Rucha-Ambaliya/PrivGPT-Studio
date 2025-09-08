@@ -38,8 +38,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b sticky top-0 z-50 bg-background">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Image
               src="/assets/logo-icon-dark.svg"
@@ -47,6 +47,7 @@ export default function HomePage() {
               width={32}
               height={32}
               className="dark:hidden"
+              priority
             />
             <Image
               src="/assets/logo-icon-light.svg"
@@ -54,24 +55,25 @@ export default function HomePage() {
               width={32}
               height={32}
               className="hidden dark:block"
+              priority
             />
-            <span className="text-xl font-bold">PrivGPT Studio</span>
+            <span className="text-xl font-bold truncate">PrivGPT Studio</span>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 md:space-x-4">
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-4">
               <Link
                 href="/"
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Home
               </Link>
               <Link href="/about">
-                <Button variant="ghost">About Us</Button>
+                <Button variant="ghost" size="sm">About Us</Button>
               </Link>
               <Link href="/chat">
-                <Button variant="outline">Try Chat</Button>
+                <Button variant="outline" size="sm">Try Chat</Button>
               </Link>
             </nav>
 
