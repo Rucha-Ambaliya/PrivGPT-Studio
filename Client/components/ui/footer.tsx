@@ -95,13 +95,13 @@ export default function footer() {
             <h3 className="font-semibold mb-4">Connect</h3>
             <div className="flex space-x-5">
               <Link
-                href="#"
+                href="https://github.com/Rucha-Ambaliya/PrivGPT-Studio"
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Github className="w-6 h-6" />
               </Link>
               <Link
-                href="#"
+                href="https://discord.gg/J9z5T52rkZ"
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Twitter className="w-6 h-6" />
