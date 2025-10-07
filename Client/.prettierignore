@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+*.min.js
+*.map
+*.json
+.env
+.env*
+.next
+.DS_Store
+dist

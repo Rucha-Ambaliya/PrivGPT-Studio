@@ -148,7 +148,7 @@ body {
 }
 
 /* Code block improvements */
-.markdown-content pre[class*="language-"] {
+.markdown-content pre[class*='language-'] {
   margin: 0;
   border-radius: 0 0 6px 6px;
 }

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "@/components/theme-toggle";
-import SplashScreen from "../splashScreen";
-import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/theme-toggle';
+import SplashScreen from '../splashScreen';
+import { useState, useEffect } from 'react';
 import {
   Github,
   Twitter,
@@ -20,10 +20,10 @@ import {
   Award,
   Lightbulb,
   Star,
-} from "lucide-react";
-import Link from "next/link";
-import Head from "next/head";
-import Layout from "@/components/layout";
+} from 'lucide-react';
+import Link from 'next/link';
+import Head from 'next/head';
+import Layout from '@/components/layout';
 
 export default function AboutPage() {
   const [showSplash, setShowSplash] = useState(true);
@@ -94,7 +94,7 @@ export default function AboutPage() {
               About Us
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-4xl mx-auto">
-              At{" "}
+              At{' '}
               <span className="font-semibold text-foreground">
                 PrivGPT Studio
               </span>

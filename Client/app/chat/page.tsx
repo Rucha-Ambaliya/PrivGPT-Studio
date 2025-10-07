@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import type React from "react";
+import type React from 'react';
 
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { toast } from "sonner";
+import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -15,14 +15,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Send,
   Settings,
@@ -50,39 +50,39 @@ import {
   PlusCircle,
   Square,
   ChevronLeft,
-} from "lucide-react";
-import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
+} from 'lucide-react';
+import Link from 'next/link';
+import { ThemeToggle } from '@/components/theme-toggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { MentionsInput, Mention } from "react-mentions";
-import SplashScreen from "../splashScreen";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
-import Head from "next/head";
-import Image from "next/image";
-import { useTheme } from "@/components/theme-provider";
+} from '@/components/ui/collapsible';
+import { MentionsInput, Mention } from 'react-mentions';
+import SplashScreen from '../splashScreen';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import Head from 'next/head';
+import Image from 'next/image';
+import { useTheme } from '@/components/theme-provider';
 
 interface Message {
   id: string;
   content: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   timestamp: Date;
   file?: UploadedFile;
 }
@@ -105,14 +105,14 @@ export default function ChatPage() {
 
   // Loading dots animation component
   const LoadingDots = () => {
-    const [dots, setDots] = useState(".");
+    const [dots, setDots] = useState('.');
 
     useEffect(() => {
       const interval = setInterval(() => {
-        setDots((prev) => {
-          if (prev === ".") return "..";
-          if (prev === "..") return "...";
-          return ".";
+        setDots(prev => {
+          if (prev === '.') return '..';
+          if (prev === '..') return '...';
+          return '.';
         });
       }, 500);
 
@@ -132,7 +132,7 @@ export default function ChatPage() {
     isLoading?: boolean;
     isUser?: boolean;
   }) => {
-    if (isLoading || content === "...") {
+    if (isLoading || content === '...') {
       return <LoadingDots />;
     }
 
@@ -197,24 +197,24 @@ export default function ChatPage() {
           components={{
             // Code blocks with syntax highlighting
             code({ node, inline, className, children, ...props }: any) {
-              const match = /language-(\w+)/.exec(className || "");
-              const language = match ? match[1] : "";
+              const match = /language-(\w+)/.exec(className || '');
+              const language = match ? match[1] : '';
 
               // Better inline detection - check multiple conditions
               const isInline =
                 inline ||
                 !className ||
-                !String(children).includes("\n") ||
-                (String(children).trim().split("\n").length === 1 &&
+                !String(children).includes('\n') ||
+                (String(children).trim().split('\n').length === 1 &&
                   String(children).length < 100);
 
               // Debug log to see what's happening (remove after testing)
-              console.log("Code rendering:", {
+              console.log('Code rendering:', {
                 inline,
                 isInline,
                 className,
                 content: String(children),
-                hasNewlines: String(children).includes("\n"),
+                hasNewlines: String(children).includes('\n'),
               });
 
               return isInline ? (
@@ -222,8 +222,8 @@ export default function ChatPage() {
                 <code
                   className={`px-1.5 py-0.5 rounded text-sm font-mono ${
                     isUser
-                      ? "bg-primary-foreground/10 text-primary-foreground"
-                      : "bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400"
+                      ? 'bg-primary-foreground/10 text-primary-foreground'
+                      : 'bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400'
                   }`}
                   {...props}
                 >
@@ -233,13 +233,13 @@ export default function ChatPage() {
                 // Block code
                 <div className="relative my-4">
                   <div className="flex items-center justify-between bg-gray-800 text-gray-200 px-4 py-2 text-sm font-mono rounded-t-md">
-                    <span>{language || "code"}</span>
+                    <span>{language || 'code'}</span>
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          String(children).replace(/\n$/, "")
+                          String(children).replace(/\n$/, ''),
                         );
-                        toast.success("Code copied to clipboard!");
+                        toast.success('Code copied to clipboard!');
                       }}
                       className="text-gray-400 hover:text-white text-xs"
                     >
@@ -253,7 +253,7 @@ export default function ChatPage() {
                     className="!mt-0 !rounded-t-none"
                     {...props}
                   >
-                    {String(children).replace(/\n$/, "")}
+                    {String(children).replace(/\n$/, '')}
                   </SyntaxHighlighter>
                 </div>
               );
@@ -263,8 +263,8 @@ export default function ChatPage() {
               <h1
                 className={`text-2xl font-bold mt-6 mb-4 ${
                   isUser
-                    ? "text-primary-foreground"
-                    : "text-gray-900 dark:text-gray-100"
+                    ? 'text-primary-foreground'
+                    : 'text-gray-900 dark:text-gray-100'
                 }`}
               >
                 {children}
@@ -274,8 +274,8 @@ export default function ChatPage() {
               <h2
                 className={`text-xl font-semibold mt-5 mb-3 ${
                   isUser
-                    ? "text-primary-foreground"
-                    : "text-gray-900 dark:text-gray-100"
+                    ? 'text-primary-foreground'
+                    : 'text-gray-900 dark:text-gray-100'
                 }`}
               >
                 {children}
@@ -285,8 +285,8 @@ export default function ChatPage() {
               <h3
                 className={`text-lg font-semibold mt-4 mb-2 ${
                   isUser
-                    ? "text-primary-foreground"
-                    : "text-gray-900 dark:text-gray-100"
+                    ? 'text-primary-foreground'
+                    : 'text-gray-900 dark:text-gray-100'
                 }`}
               >
                 {children}
@@ -307,8 +307,8 @@ export default function ChatPage() {
               <li
                 className={
                   isUser
-                    ? "text-primary-foreground"
-                    : "text-gray-800 dark:text-gray-200"
+                    ? 'text-primary-foreground'
+                    : 'text-gray-800 dark:text-gray-200'
                 }
               >
                 {children}
@@ -319,8 +319,8 @@ export default function ChatPage() {
               <p
                 className={`mb-3 leading-relaxed ${
                   isUser
-                    ? "text-primary-foreground"
-                    : "text-gray-800 dark:text-gray-200"
+                    ? 'text-primary-foreground'
+                    : 'text-gray-800 dark:text-gray-200'
                 }`}
               >
                 {children}
@@ -331,8 +331,8 @@ export default function ChatPage() {
               <blockquote
                 className={`border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-4 italic ${
                   isUser
-                    ? "text-primary-foreground/80"
-                    : "text-gray-600 dark:text-gray-400"
+                    ? 'text-primary-foreground/80'
+                    : 'text-gray-600 dark:text-gray-400'
                 }`}
               >
                 {children}
@@ -346,8 +346,8 @@ export default function ChatPage() {
                 rel="noopener noreferrer"
                 className={
                   isUser
-                    ? "text-primary-foreground underline hover:text-primary-foreground/80"
-                    : "text-blue-600 dark:text-blue-400 hover:underline"
+                    ? 'text-primary-foreground underline hover:text-primary-foreground/80'
+                    : 'text-blue-600 dark:text-blue-400 hover:underline'
                 }
               >
                 {children}
@@ -383,8 +383,8 @@ export default function ChatPage() {
               <strong
                 className={`font-bold ${
                   isUser
-                    ? "text-primary-foreground"
-                    : "text-gray-900 dark:text-gray-100"
+                    ? 'text-primary-foreground'
+                    : 'text-gray-900 dark:text-gray-100'
                 }`}
               >
                 {children}
@@ -395,8 +395,8 @@ export default function ChatPage() {
               <em
                 className={`italic ${
                   isUser
-                    ? "text-primary-foreground"
-                    : "text-gray-800 dark:text-gray-200"
+                    ? 'text-primary-foreground'
+                    : 'text-gray-800 dark:text-gray-200'
                 }`}
               >
                 {children}
@@ -411,34 +411,34 @@ export default function ChatPage() {
   };
 
   const welcomeMessage: Message = {
-    id: "1",
+    id: '1',
     content: "Hello! I'm your AI assistant. How can I help you today?",
-    role: "assistant",
+    role: 'assistant',
     timestamp: new Date(),
   };
   const welcomeSession = {
-    id: "1", // or any unique ID
-    sessionName: "How can I help You?",
+    id: '1', // or any unique ID
+    sessionName: 'How can I help You?',
     lastMessage: "Hello! I'm your AI assistant. How can I help you today?",
   };
   const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [localModels, setLocalModels] = useState<string[]>([]);
   const [cloudModels, setCloudModels] = useState<string[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>("");
-  const [selectedModelType, setSelectedModelType] = useState<"local" | "cloud">(
-    "local"
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [selectedModelType, setSelectedModelType] = useState<'local' | 'cloud'>(
+    'local',
   );
   const [isChatSessionsCollapsed, setIsChatSessionsCollapsed] = useState(false);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [chatSessionSuggestions, setChatSessionSuggestions] = useState<
     { id: string; display: string }[]
   >([]);
-  const [sessionId, setSessionId] = useState<string>("1");
-  const [status, setStatus] = useState("Online");
+  const [sessionId, setSessionId] = useState<string>('1');
+  const [status, setStatus] = useState('Online');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [latency, setLatency] = useState<string | null>("0");
+  const [latency, setLatency] = useState<string | null>('0');
   const [clearChatSessionModal, setClearChatSessionModal] = useState(false);
   const [exportChatSessionModal, setExportChatSessionModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
@@ -447,7 +447,7 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newChatSessionBtnRef = useRef<HTMLButtonElement | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editedName, setEditedName] = useState<string>("");
+  const [editedName, setEditedName] = useState<string>('');
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [deleteChatSessionModal, setDeleteChatSessionModal] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -475,8 +475,8 @@ export default function ChatPage() {
     // Set initial state
     handleResize();
 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const stopGeneration = () => {
@@ -490,7 +490,7 @@ export default function ChatPage() {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -501,7 +501,7 @@ export default function ChatPage() {
     const fetchModels = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/models`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/models`,
         );
         const data = await response.json();
         const local: string[] = data.local_models || [];
@@ -511,70 +511,70 @@ export default function ChatPage() {
 
         // Attempt restore from localStorage
         const storedModel =
-          typeof window !== "undefined"
-            ? localStorage.getItem("selected_model_name")
+          typeof window !== 'undefined'
+            ? localStorage.getItem('selected_model_name')
             : null;
         const storedType =
-          (typeof window !== "undefined"
-            ? (localStorage.getItem("selected_model_type") as
-                | "local"
-                | "cloud"
+          typeof window !== 'undefined'
+            ? (localStorage.getItem('selected_model_type') as
+                | 'local'
+                | 'cloud'
                 | null)
-            : null);
+            : null;
 
         // Always select the first available model as default
-        let modelToSelect = "";
-        let typeToSelect: "local" | "cloud" = "local";
+        let modelToSelect = '';
+        let typeToSelect: 'local' | 'cloud' = 'local';
 
         // First priority: stored model if still available
         if (
           storedModel &&
-          ((storedType === "local" && local.includes(storedModel)) ||
-            (storedType === "cloud" && cloud.includes(storedModel)))
+          ((storedType === 'local' && local.includes(storedModel)) ||
+            (storedType === 'cloud' && cloud.includes(storedModel)))
         ) {
           modelToSelect = storedModel;
-          typeToSelect = storedType as "local" | "cloud";
+          typeToSelect = storedType as 'local' | 'cloud';
         } else if (local.length > 0) {
           modelToSelect = local[0];
-          typeToSelect = "local";
+          typeToSelect = 'local';
         } else if (cloud.length > 0) {
           modelToSelect = cloud[0];
-          typeToSelect = "cloud";
+          typeToSelect = 'cloud';
         }
 
         // Set the selected model
         if (modelToSelect) {
           setSelectedModel(modelToSelect);
           setSelectedModelType(typeToSelect);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("selected_model_name", modelToSelect);
-            localStorage.setItem("selected_model_type", typeToSelect);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('selected_model_name', modelToSelect);
+            localStorage.setItem('selected_model_type', typeToSelect);
           }
         }
       } catch (error) {
-        console.error("Failed to fetch models:", error);
+        console.error('Failed to fetch models:', error);
       }
     };
     fetchModels();
   }, []);
 
   const fallbackToGemini = (errorText: string) => {
-    const geminiAvailable = cloudModels.includes("gemini");
+    const geminiAvailable = cloudModels.includes('gemini');
     if (geminiAvailable) {
       toast.error(
-        `Local model unavailable. Switched to Gemini. Error: ${errorText}`
+        `Local model unavailable. Switched to Gemini. Error: ${errorText}`,
       );
-      setSelectedModel("gemini");
-      setSelectedModelType("cloud");
+      setSelectedModel('gemini');
+      setSelectedModelType('cloud');
       try {
-        localStorage.setItem("selected_model_name", "gemini");
-        localStorage.setItem("selected_model_type", "cloud");
+        localStorage.setItem('selected_model_name', 'gemini');
+        localStorage.setItem('selected_model_type', 'cloud');
       } catch (e) {
         /* ignore */
       }
     } else {
       toast.error(
-        `Local model unavailable and Gemini not configured. Error: ${errorText}`
+        `Local model unavailable and Gemini not configured. Error: ${errorText}`,
       );
     }
   };
@@ -582,7 +582,7 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchChatSessionHistory = async () => {
       const storedSessions = JSON.parse(
-        localStorage.getItem("chat_sessions") || "[]"
+        localStorage.getItem('chat_sessions') || '[]',
       );
 
       // ✅ If no previous sessions, just show welcome
@@ -600,13 +600,13 @@ export default function ChatPage() {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/history`,
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_ids: storedSessions }),
-          }
+          },
         );
 
-        if (!response.ok) throw new Error("Failed to fetch session history");
+        if (!response.ok) throw new Error('Failed to fetch session history');
 
         const sessions = await response.json();
 
@@ -622,7 +622,7 @@ export default function ChatPage() {
                 lastMessage: lastMsg,
                 sessionName: session.session_name || lastMsg,
               };
-            }
+            },
           );
 
           // ✅ Always keep welcomeSession first in the list
@@ -658,14 +658,14 @@ export default function ChatPage() {
                     } as UploadedFile,
                   }
                 : {}),
-            })
+            }),
           );
 
           // ✅ Put welcomeMessage on top of history
           setMessages([welcomeMessage, ...(formattedMessages || [])]);
         }
       } catch (error) {
-        console.error("Failed to fetch session history:", error);
+        console.error('Failed to fetch session history:', error);
       }
     };
 
@@ -677,14 +677,14 @@ export default function ChatPage() {
     }
   }, [showSplash]);
   useEffect(() => {
-    if (chatSessions.some((session) => session.id === "1")) {
+    if (chatSessions.some(session => session.id === '1')) {
       // welcomeSession exists, disable new chat button
       if (newChatSessionBtnRef.current) {
         newChatSessionBtnRef.current.disabled = true;
       }
     } else {
       // no welcome session, allow new chat
-      if (newChatSessionBtnRef.current && sessionId != "1") {
+      if (newChatSessionBtnRef.current && sessionId != '1') {
         newChatSessionBtnRef.current.disabled = false;
       }
     }
@@ -695,17 +695,17 @@ export default function ChatPage() {
 
     function checkStatus() {
       const isNowOnline = navigator.onLine;
-      setStatus(isNowOnline ? "Online" : "Offline");
+      setStatus(isNowOnline ? 'Online' : 'Offline');
 
       if (!isNowOnline && !wasOffline) {
         wasOffline = true;
 
-        if (selectedModelType === "cloud" && localModels.length > 0) {
+        if (selectedModelType === 'cloud' && localModels.length > 0) {
           setSelectedModel(localModels[0]);
-          setSelectedModelType("local");
-          toast.warning("You are offline. Switched to local model.");
+          setSelectedModelType('local');
+          toast.warning('You are offline. Switched to local model.');
         } else {
-          toast.error("You are offline and no local models are available.");
+          toast.error('You are offline and no local models are available.');
         }
       }
 
@@ -724,22 +724,22 @@ export default function ChatPage() {
     if (!input.trim()) return;
 
     // Check if a model is selected
-    if (!selectedModel || selectedModel.trim() === "") {
-      toast.error("Please select a model before sending a message.");
+    if (!selectedModel || selectedModel.trim() === '') {
+      toast.error('Please select a model before sending a message.');
       return;
     }
 
     // Check if models are loaded
     if (localModels.length === 0 && cloudModels.length === 0) {
-      toast.error("Loading models... Please wait a moment and try again.");
+      toast.error('Loading models... Please wait a moment and try again.');
       return;
     }
 
     // remove backslashes added by react-mentions markup
-    const unescapedInput = input.replace(/\\([\[\]\(\)])/g, "$1");
+    const unescapedInput = input.replace(/\\([\[\]\(\)])/g, '$1');
 
     const mentionMatches = [...unescapedInput.matchAll(/@\[(.*?)\]\((.*?)\)/g)];
-    const mentionIds = mentionMatches.map((m) => m[2]);
+    const mentionIds = mentionMatches.map(m => m[2]);
 
     const messageWithDisplayOnly = unescapedInput
       .replace(/@\[(.*?)\]\((.*?)\)/g, (_match, display, _id) => `@${display}`)
@@ -748,13 +748,13 @@ export default function ChatPage() {
     const userMessage: Message = {
       id: Date.now().toString(),
       content: messageWithDisplayOnly,
-      role: "user",
+      role: 'user',
       timestamp: new Date(),
       ...(uploadedFile ? { file: uploadedFile } : {}),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
 
     // Use streaming endpoint for text-only messages (if streaming is enabled), regular endpoint for file uploads or when streaming is disabled
     const endpoint =
@@ -768,18 +768,18 @@ export default function ChatPage() {
     }
 
     const formData = new FormData();
-    formData.append("message", userMessage.content);
-    formData.append("model_type", selectedModelType);
-    formData.append("model_name", selectedModel);
-    formData.append("timestamp", userMessage.timestamp.toISOString());
-    if (sessionId) formData.append("session_id", sessionId);
+    formData.append('message', userMessage.content);
+    formData.append('model_type', selectedModelType);
+    formData.append('model_name', selectedModel);
+    formData.append('timestamp', userMessage.timestamp.toISOString());
+    if (sessionId) formData.append('session_id', sessionId);
 
     // append mention ids
-    mentionIds.forEach((id) => formData.append("mention_session_ids[]", id));
+    mentionIds.forEach(id => formData.append('mention_session_ids[]', id));
 
     // append file if uploaded
     if (uploadedFile) {
-      formData.append("uploaded_file", uploadedFile.file);
+      formData.append('uploaded_file', uploadedFile.file);
       // Remove file after adding to form data
       removeFile();
     }
@@ -788,32 +788,32 @@ export default function ChatPage() {
     if (uploadedFile || !streamingEnabled) {
       try {
         const response = await fetch(endpoint, {
-          method: "POST",
+          method: 'POST',
           body: formData,
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch AI response");
+          throw new Error('Failed to fetch AI response');
         }
 
         const data = await response.json();
-        const bot_response = data.response || "No Reply";
+        const bot_response = data.response || 'No Reply';
 
-        if (sessionId === "1" && data.session_id) {
+        if (sessionId === '1' && data.session_id) {
           setSessionId(data.session_id);
           localStorage.setItem(
-            "chat_sessions",
+            'chat_sessions',
             JSON.stringify([
-              ...JSON.parse(localStorage.getItem("chat_sessions") || "[]"),
+              ...JSON.parse(localStorage.getItem('chat_sessions') || '[]'),
               data.session_id,
-            ])
+            ]),
           );
         }
 
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           content: bot_response,
-          role: "assistant",
+          role: 'assistant',
           timestamp: new Date(data.timestamp),
         };
 
@@ -821,9 +821,9 @@ export default function ChatPage() {
         if (data.fallback_used) {
           fallbackToGemini(bot_response);
         } else if (
-          bot_response.toLowerCase().includes("local model error") ||
-          bot_response.toLowerCase().includes("connection refused") ||
-          bot_response.toLowerCase().includes("failed to establish")
+          bot_response.toLowerCase().includes('local model error') ||
+          bot_response.toLowerCase().includes('connection refused') ||
+          bot_response.toLowerCase().includes('failed to establish')
         ) {
           // If server didn't auto fallback (e.g., streaming disabled), try client side
           fallbackToGemini(bot_response);
@@ -836,11 +836,11 @@ export default function ChatPage() {
           newChatSessionBtnRef.current.disabled = false;
         }
 
-        setMessages((prev) => [...prev, assistantMessage]);
+        setMessages(prev => [...prev, assistantMessage]);
         setIsTyping(false);
         setLatency(data.latency.toString());
       } catch (error) {
-        console.error("Failed to receive response from AI", error);
+        console.error('Failed to receive response from AI', error);
         setIsTyping(false);
       }
       return;
@@ -849,12 +849,12 @@ export default function ChatPage() {
     // Handle streaming for text-only messages
     const tempAssistantMessage: Message = {
       id: (Date.now() + 1).toString(),
-      content: "...",
-      role: "assistant",
+      content: '...',
+      role: 'assistant',
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, tempAssistantMessage]);
+    setMessages(prev => [...prev, tempAssistantMessage]);
     setIsStreaming(true);
 
     // Create abort controller for stopping generation
@@ -863,20 +863,20 @@ export default function ChatPage() {
 
     try {
       const response = await fetch(endpoint, {
-        method: "POST",
+        method: 'POST',
         body: formData,
         signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch AI response");
+        throw new Error('Failed to fetch AI response');
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let streamedContent = "";
+      let streamedContent = '';
       let finalSessionId = sessionId;
-      let latencyValue = "0";
+      let latencyValue = '0';
 
       if (reader) {
         while (true) {
@@ -884,85 +884,90 @@ export default function ChatPage() {
           if (done) break;
 
           const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
+          const lines = chunk.split('\n');
 
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
+            if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
 
                 switch (data.type) {
-                  case "session_info":
+                  case 'session_info':
                     if (data.session_id && data.session_id !== sessionId) {
                       finalSessionId = data.session_id;
                     }
                     break;
 
-                  case "chunk":
+                  case 'chunk':
                     // If this is the first chunk and we still have "..." as content, clear it first
-                    if (streamedContent === "" && data.text) {
+                    if (streamedContent === '' && data.text) {
                       streamedContent = data.text;
                     } else {
                       streamedContent += data.text;
                     }
                     // Detect server-sent fallback marker
-                    if (data.text && data.text.includes("[Local model failed, switching to gemini")) {
-                      fallbackToGemini("Local model failed during streaming");
+                    if (
+                      data.text &&
+                      data.text.includes(
+                        '[Local model failed, switching to gemini',
+                      )
+                    ) {
+                      fallbackToGemini('Local model failed during streaming');
                     }
                     // Update the temporary message with streamed content
-                    setMessages((prev) =>
-                      prev.map((msg) =>
+                    setMessages(prev =>
+                      prev.map(msg =>
                         msg.id === tempAssistantMessage.id
                           ? { ...msg, content: streamedContent }
-                          : msg
-                      )
+                          : msg,
+                      ),
                     );
                     break;
 
-                  case "complete":
-                    if (data.session_id && sessionId === "1") {
+                  case 'complete':
+                    if (data.session_id && sessionId === '1') {
                       setSessionId(data.session_id);
                       localStorage.setItem(
-                        "chat_sessions",
+                        'chat_sessions',
                         JSON.stringify([
                           ...JSON.parse(
-                            localStorage.getItem("chat_sessions") || "[]"
+                            localStorage.getItem('chat_sessions') || '[]',
                           ),
                           data.session_id,
-                        ])
+                        ]),
                       );
                     }
 
                     // Update final message with timestamp
-                    setMessages((prev) =>
-                      prev.map((msg) =>
+                    setMessages(prev =>
+                      prev.map(msg =>
                         msg.id === tempAssistantMessage.id
                           ? {
                               ...msg,
                               content: streamedContent,
                               timestamp: new Date(data.timestamp),
                             }
-                          : msg
-                      )
+                          : msg,
+                      ),
                     );
 
-                    latencyValue = data.latency?.toString() || "0";
+                    latencyValue = data.latency?.toString() || '0';
                     break;
 
-                  case "error":
+                  case 'error':
                     streamedContent = data.message;
-                    setMessages((prev) =>
-                      prev.map((msg) =>
+                    setMessages(prev =>
+                      prev.map(msg =>
                         msg.id === tempAssistantMessage.id
                           ? { ...msg, content: streamedContent }
-                          : msg
-                      )
+                          : msg,
+                      ),
                     );
                     break;
                 }
               } catch (e) {
                 // Ignore JSON parse errors for malformed lines
-                console.warn("Failed to parse SSE data:", e);
+                console.warn('Failed to parse SSE data:', e);
               }
             }
           }
@@ -979,9 +984,9 @@ export default function ChatPage() {
       // Fallback detection after streaming
       if (
         streamedContent &&
-        (streamedContent.toLowerCase().includes("local model error") ||
-          streamedContent.toLowerCase().includes("connection refused") ||
-          streamedContent.toLowerCase().includes("failed to establish"))
+        (streamedContent.toLowerCase().includes('local model error') ||
+          streamedContent.toLowerCase().includes('connection refused') ||
+          streamedContent.toLowerCase().includes('failed to establish'))
       ) {
         fallbackToGemini(streamedContent);
       }
@@ -990,33 +995,33 @@ export default function ChatPage() {
       setAbortController(null);
       setLatency(latencyValue);
     } catch (error: any) {
-      if (error.name === "AbortError") {
-        console.log("Generation was stopped by user");
+      if (error.name === 'AbortError') {
+        console.log('Generation was stopped by user');
         // Update the temp message to show it was stopped
-        setMessages((prev) =>
-          prev.map((msg) =>
+        setMessages(prev =>
+          prev.map(msg =>
             msg.id === tempAssistantMessage.id
               ? {
                   ...msg,
                   content:
-                    (msg.content || "") + "\n\n[Generation stopped by user]",
+                    (msg.content || '') + '\n\n[Generation stopped by user]',
                 }
-              : msg
-          )
+              : msg,
+          ),
         );
       } else {
-        console.error("Failed to receive response from AI", error);
+        console.error('Failed to receive response from AI', error);
 
         // Update the temp message with error
-        setMessages((prev) =>
-          prev.map((msg) =>
+        setMessages(prev =>
+          prev.map(msg =>
             msg.id === tempAssistantMessage.id
               ? {
                   ...msg,
-                  content: "Failed to get response from AI. Please try again.",
+                  content: 'Failed to get response from AI. Please try again.',
                 }
-              : msg
-          )
+              : msg,
+          ),
         );
       }
 
@@ -1026,7 +1031,7 @@ export default function ChatPage() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -1047,7 +1052,7 @@ export default function ChatPage() {
   const removeFile = () => {
     setUploadedFile(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -1056,25 +1061,25 @@ export default function ChatPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/clear`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ session_id: sessionId }),
-        }
+        },
       );
 
       if (!response.ok) {
-        throw new Error("Failed to clear chat session");
+        throw new Error('Failed to clear chat session');
       }
 
-      toast.success("Chat cleared successfully!");
+      toast.success('Chat cleared successfully!');
 
       // Reset messages with welcome message
       setMessages([welcomeMessage]);
     } catch (error) {
-      console.error("Error clearing session:", error);
-      toast.error("Failed to clear chat.");
+      console.error('Error clearing session:', error);
+      toast.error('Failed to clear chat.');
     } finally {
       setClearChatSessionModal(false);
     }
@@ -1082,15 +1087,15 @@ export default function ChatPage() {
 
   const handleExportChatSession = () => {
     if (!sessionId) {
-      toast.error("No session to export.");
+      toast.error('No session to export.');
       return;
     }
 
     // Find the current session's name from chatSessions array
-    const currentSession = chatSessions.find((s) => s.id === sessionId);
+    const currentSession = chatSessions.find(s => s.id === sessionId);
     const sessionName = currentSession
       ? currentSession.sessionName
-      : "Unnamed Session";
+      : 'Unnamed Session';
 
     // Build the export content
     let exportText = `CHATBOT CONVERSATION\n====================================\n\n`;
@@ -1100,22 +1105,22 @@ export default function ChatPage() {
     exportText += `------------------------------------\n\n`;
 
     // Add messages
-    messages.forEach((msg) => {
-      const who = msg.role === "user" ? "You" : "Bot";
+    messages.forEach(msg => {
+      const who = msg.role === 'user' ? 'You' : 'Bot';
       const time = msg.timestamp
         ? new Date(msg.timestamp).toLocaleTimeString()
-        : "Unknown Time";
+        : 'Unknown Time';
       exportText += `[${time}] ${who}: ${msg.content}\n\n`;
     });
 
     // Create a blob and download
-    const blob = new Blob([exportText], { type: "text/plain" });
+    const blob = new Blob([exportText], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
 
     // Create a filename that includes session name (safe fallback)
-    const safeName = sessionName.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    const safeName = sessionName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     a.download = `chat_${safeName}_${sessionId}.txt`;
 
     document.body.appendChild(a);
@@ -1123,7 +1128,7 @@ export default function ChatPage() {
     a.remove();
     window.URL.revokeObjectURL(url);
 
-    toast.success("Chat exported successfully!");
+    toast.success('Chat exported successfully!');
     setExportChatSessionModal(false);
   };
 
@@ -1133,20 +1138,20 @@ export default function ChatPage() {
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      console.warn("SpeechRecognition not supported");
+      console.warn('SpeechRecognition not supported');
       return;
     }
     if (!SpeechRecognition) {
-      console.warn("SpeechRecognition not supported");
+      console.warn('SpeechRecognition not supported');
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
+    recognition.lang = 'en-US';
     recognition.continuous = true;
     recognition.interimResults = true;
 
     recognition.onresult = (event: any) => {
-      let transcript = "";
+      let transcript = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
       }
@@ -1154,7 +1159,7 @@ export default function ChatPage() {
     };
 
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
+      console.error('Speech recognition error', event.error);
       setIsRecording(false);
       recognition.stop();
     };
@@ -1179,36 +1184,36 @@ export default function ChatPage() {
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return (
-      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     );
   };
 
   const getFileIcon = (type: string) => {
-    if (type.startsWith("image/")) return <ImageIcon className="w-4 h-4" />;
-    if (type.includes("text") || type.includes("document"))
+    if (type.startsWith('image/')) return <ImageIcon className="w-4 h-4" />;
+    if (type.includes('text') || type.includes('document'))
       return <FileText className="w-4 h-4" />;
     return <File className="w-4 h-4" />;
   };
 
   const handleCurrentChatSession = async (id: string) => {
     try {
-      if (id === "1") {
+      if (id === '1') {
         setMessages([welcomeMessage]);
-        setSessionId("1");
+        setSessionId('1');
         return;
       }
 
-      if (sessionId === "1" && id !== "1") {
+      if (sessionId === '1' && id !== '1') {
         // Filter out dummy session
-        setChatSessions((prev) =>
-          prev.filter((chatSession) => chatSession.id !== "1")
+        setChatSessions(prev =>
+          prev.filter(chatSession => chatSession.id !== '1'),
         );
-        if (newChatSessionBtnRef.current && id != "1") {
+        if (newChatSessionBtnRef.current && id != '1') {
           newChatSessionBtnRef.current.disabled = false;
         }
       }
@@ -1216,9 +1221,9 @@ export default function ChatPage() {
       setSessionId(id);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${id}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${id}`,
       );
-      if (!response.ok) throw new Error("Failed to fetch messages");
+      if (!response.ok) throw new Error('Failed to fetch messages');
 
       const data = await response.json();
 
@@ -1238,13 +1243,13 @@ export default function ChatPage() {
                 } as UploadedFile,
               }
             : {}),
-        })
+        }),
       );
 
       const newWelcomeMessage: Message = {
-        id: "1",
+        id: '1',
         content: "Hello! I'm your AI assistant. How can I help you today?",
-        role: "assistant",
+        role: 'assistant',
         timestamp:
           formattedMessages.length > 0
             ? formattedMessages[0].timestamp
@@ -1253,17 +1258,17 @@ export default function ChatPage() {
 
       setMessages([newWelcomeMessage, ...formattedMessages]);
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      console.error('Error fetching messages:', error);
     }
   };
 
   const handleNewChatSession = () => {
     const isAlreadyPresent = chatSessions.some(
-      (session) => session.id === welcomeSession.id
+      session => session.id === welcomeSession.id,
     );
 
     if (!isAlreadyPresent) {
-      setChatSessions((prev) => [welcomeSession, ...prev]);
+      setChatSessions(prev => [welcomeSession, ...prev]);
       setSessionId(welcomeSession.id);
       welcomeMessage.timestamp = new Date();
       setMessages([welcomeMessage]);
@@ -1277,7 +1282,7 @@ export default function ChatPage() {
   };
 
   const handleRenameSession = (id: string) => {
-    const session = chatSessions.find((s) => s.id === id);
+    const session = chatSessions.find(s => s.id === id);
     if (!session) return;
 
     setEditingSessionId(id);
@@ -1290,35 +1295,35 @@ export default function ChatPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/delete/${id}`,
         {
-          method: "DELETE",
-        }
+          method: 'DELETE',
+        },
       );
 
       if (!response.ok) {
         const errData = await response.json();
-        toast.error(errData.error || "Failed to delete chat session");
+        toast.error(errData.error || 'Failed to delete chat session');
         return;
       }
 
       const data = await response.json();
-      toast.success(data.message || "Chat deleted successfully");
+      toast.success(data.message || 'Chat deleted successfully');
 
       // Remove from local state
       const updatedSessions = chatSessions.filter(
-        (chatSession) => chatSession.id !== id
+        chatSession => chatSession.id !== id,
       );
       setChatSessions(updatedSessions);
 
       // Remove from localStorage
       const storedSessions: string[] = JSON.parse(
-        localStorage.getItem("chat_sessions") || "[]"
+        localStorage.getItem('chat_sessions') || '[]',
       );
       const filteredStoredSessions = storedSessions.filter(
-        (sessionId) => sessionId !== id
+        sessionId => sessionId !== id,
       );
       localStorage.setItem(
-        "chat_sessions",
-        JSON.stringify(filteredStoredSessions)
+        'chat_sessions',
+        JSON.stringify(filteredStoredSessions),
       );
 
       // Decide what to show next
@@ -1329,7 +1334,7 @@ export default function ChatPage() {
       } else {
         // If no sessions left, fallback to welcome session
         setChatSessions([welcomeSession]);
-        setSessionId("1");
+        setSessionId('1');
         setMessages([welcomeMessage]);
         if (newChatSessionBtnRef.current) {
           newChatSessionBtnRef.current.disabled = true;
@@ -1339,15 +1344,15 @@ export default function ChatPage() {
       // Close modal
       setDeleteChatSessionModal(false);
     } catch (error) {
-      console.error("Error deleting chat session:", error);
-      toast.error("Something went wrong while deleting the chat.");
+      console.error('Error deleting chat session:', error);
+      toast.error('Something went wrong while deleting the chat.');
       setDeleteChatSessionModal(false);
     }
   };
 
   const saveEditedName = async (id: string) => {
     if (!editedName.trim()) {
-      toast.error("Session name cannot be empty.");
+      toast.error('Session name cannot be empty.');
       return;
     }
 
@@ -1355,42 +1360,42 @@ export default function ChatPage() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/rename`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: id, new_name: editedName }),
-        }
+        },
       );
 
       if (res.ok) {
-        setChatSessions((prev) =>
-          prev.map((s) => (s.id === id ? { ...s, name: editedName } : s))
+        setChatSessions(prev =>
+          prev.map(s => (s.id === id ? { ...s, name: editedName } : s)),
         );
       } else {
         const errorText = await res.text();
         throw errorText;
       }
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("An error occurred while renaming the session.");
+      console.error('Error:', error);
+      toast.error('An error occurred while renaming the session.');
     } finally {
       setEditingSessionId(null);
-      setEditedName("");
+      setEditedName('');
     }
   };
 
   const cancelEdit = () => {
     setEditingSessionId(null);
-    setEditedName("");
+    setEditedName('');
   };
 
   useEffect(() => {
     if (Array.isArray(chatSessions)) {
       const suggestions = chatSessions
-        .filter((session: any) => session.id !== "1") // exclude id==="1"
+        .filter((session: any) => session.id !== '1') // exclude id==="1"
         .map((session: any) => ({
           id: session.id,
           display:
-            session.sessionName || session.session_name || "Unnamed Session",
+            session.sessionName || session.session_name || 'Unnamed Session',
         }));
       setChatSessionSuggestions(suggestions);
     }
@@ -1420,27 +1425,29 @@ export default function ChatPage() {
   dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-500
   lg:static inset-y-0 left-0 z-50 bg-background border-r transform transition-all duration-300 ease-in-out ${
     isSidebarOpen
-      ? "translate-x-0 w-80 lg:w-80"
-      : "-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0"
+      ? 'translate-x-0 w-80 lg:w-80'
+      : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0'
   }`}
       >
         {/* Sidebar Header */}
         <div
           className={`sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b px-4 py-4 ${
-            !isSidebarOpen ? "lg:hidden" : ""
+            !isSidebarOpen ? 'lg:hidden' : ''
           }`}
         >
           <div className="flex items-center justify-between">
             <Link href="/">
               <Image
-                src={darkMode ? "/logos/logo-dark.svg" : "/logos/logo-light.svg"}
+                src={
+                  darkMode ? '/logos/logo-dark.svg' : '/logos/logo-light.svg'
+                }
                 alt="PrivGPT Studio Logo"
                 width={290}
                 height={53}
                 priority
                 className="w-[220px] h-auto"
               />
-              </Link>
+            </Link>
 
             <div className="flex items-center space-x-2">
               <ThemeToggle />
@@ -1466,7 +1473,7 @@ export default function ChatPage() {
         </div>
         <div className="flex-1 mt-5 px-2">
           {/* Navigation */}
-          <nav className={`space-y-2 ${!isSidebarOpen ? "lg:hidden" : ""}`}>
+          <nav className={`space-y-2 ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
             <Collapsible
               open={isChatSessionsCollapsed}
               onOpenChange={setIsChatSessionsCollapsed}
@@ -1508,19 +1515,19 @@ export default function ChatPage() {
                           ref={inputRef}
                           type="text"
                           value={editedName}
-                          onChange={(e) => setEditedName(e.target.value)}
-                          onBlur={(e) => {
+                          onChange={e => setEditedName(e.target.value)}
+                          onBlur={e => {
                             setTimeout(() => {
                               if (document.activeElement !== inputRef.current) {
                                 saveEditedName(session.id);
                               }
                             }, 100);
                           }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
                               e.preventDefault();
                               saveEditedName(session.id);
-                            } else if (e.key === "Escape") {
+                            } else if (e.key === 'Escape') {
                               e.preventDefault();
                               cancelEdit();
                             }
@@ -1541,7 +1548,7 @@ export default function ChatPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         asChild
-                        className={`${session.id == "1" && ""}`}
+                        className={`${session.id == '1' && ''}`}
                       >
                         <Button
                           variant="ghost"
@@ -1603,7 +1610,7 @@ export default function ChatPage() {
           </nav>
 
           {/* Model Selection */}
-          <div className={`p-4 border-b ${!isSidebarOpen ? "lg:hidden" : ""}`}>
+          <div className={`p-4 border-b ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">AI Model</h3>
               <div className="flex items-center space-x-2">
@@ -1619,7 +1626,7 @@ export default function ChatPage() {
               onValueChange={(model: string) => {
                 setSelectedModel(model);
                 setSelectedModelType(
-                  localModels.includes(model) ? "local" : "cloud"
+                  localModels.includes(model) ? 'local' : 'cloud',
                 );
               }}
             >
@@ -1630,7 +1637,7 @@ export default function ChatPage() {
                 <div className="px-2 py-1 text-xs text-muted-foreground">
                   Local Models
                 </div>
-                {localModels.map((model) => (
+                {localModels.map(model => (
                   <SelectItem key={model} value={model}>
                     <div className="flex items-center">
                       <Cpu className="w-4 h-4 mr-2" />
@@ -1642,7 +1649,7 @@ export default function ChatPage() {
                 <div className="px-2 py-1 text-xs text-muted-foreground mt-2">
                   Cloud Models
                 </div>
-                {cloudModels.map((model) => (
+                {cloudModels.map(model => (
                   <SelectItem key={model} value={model}>
                     <div className="flex items-center">
                       <Globe className="w-4 h-4 mr-2" />
@@ -1655,7 +1662,7 @@ export default function ChatPage() {
           </div>
 
           {/* Usage Stats */}
-          <div className={`p-4 flex-1 ${!isSidebarOpen ? "lg:hidden" : ""}`}>
+          <div className={`p-4 flex-1 ${!isSidebarOpen ? 'lg:hidden' : ''}`}>
             <h3 className="font-semibold mb-3">Usage Stats</h3>
             <div className="space-y-3">
               <Card>
@@ -1668,7 +1675,7 @@ export default function ChatPage() {
                     <Badge
                       variant="secondary"
                       className={
-                        status === "Online" ? "text-green-600" : "text-red-600"
+                        status === 'Online' ? 'text-green-600' : 'text-red-600'
                       }
                     >
                       {status}
@@ -1710,7 +1717,7 @@ export default function ChatPage() {
       {/* Main Chat Panel */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? "lg:ml-0" : "lg:ml-0"
+          isSidebarOpen ? 'lg:ml-0' : 'lg:ml-0'
         }`}
       >
         {/* Chat Header with Hamburger */}
@@ -1720,7 +1727,7 @@ export default function ChatPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`${isSidebarOpen ? "lg:hidden" : ""}`}
+                className={`${isSidebarOpen ? 'lg:hidden' : ''}`}
                 onClick={() => setIsSidebarOpen(true)}
               >
                 <ChevronRight className="w-5 h-5" />
@@ -1733,9 +1740,9 @@ export default function ChatPage() {
               </div>
             </div>
             <Badge
-              variant={selectedModelType === "cloud" ? "default" : "secondary"}
+              variant={selectedModelType === 'cloud' ? 'default' : 'secondary'}
             >
-              {selectedModelType === "cloud" ? "Cloud" : "Local"}
+              {selectedModelType === 'cloud' ? 'Cloud' : 'Local'}
             </Badge>
           </div>
         </div>
@@ -1750,30 +1757,30 @@ export default function ChatPage() {
   dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 
   dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-500 p-4 space-y-4"
         >
-          {messages.map((message) => (
+          {messages.map(message => (
             <div
               key={message.id}
               className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
+                message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
               <div
                 className={`flex items-start space-x-2 max-w-2xl ${
-                  message.role === "user"
-                    ? "flex-row-reverse space-x-reverse"
-                    : ""
+                  message.role === 'user'
+                    ? 'flex-row-reverse space-x-reverse'
+                    : ''
                 }`}
               >
                 <Avatar className="w-8 h-8">
                   <AvatarFallback>
-                    {message.role === "user" ? "U" : "AI"}
+                    {message.role === 'user' ? 'U' : 'AI'}
                   </AvatarFallback>
                 </Avatar>
                 <div
                   className={`rounded-lg px-4 py-2 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
                   }`}
                 >
                   {message.file && (
@@ -1792,8 +1799,8 @@ export default function ChatPage() {
                   <div>
                     <MessageContent
                       content={message.content}
-                      isLoading={message.content === "..."}
-                      isUser={message.role === "user"}
+                      isLoading={message.content === '...'}
+                      isUser={message.role === 'user'}
                     />
                   </div>
                   <p
@@ -1818,11 +1825,11 @@ export default function ChatPage() {
                     <div className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"></div>
                     <div
                       className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
+                      style={{ animationDelay: '0.1s' }}
                     ></div>
                     <div
                       className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
+                      style={{ animationDelay: '0.2s' }}
                     ></div>
                   </div>
                 </div>
@@ -1858,7 +1865,7 @@ export default function ChatPage() {
               variant="ghost"
               size="sm"
               onClick={handleVoiceInput}
-              className={`${isRecording ? "text-red-500" : ""}`}
+              className={`${isRecording ? 'text-red-500' : ''}`}
             >
               <Mic className="w-4 h-4" />
               {isRecording && (
@@ -1880,7 +1887,7 @@ export default function ChatPage() {
               variant="outline"
               size="icon"
               onClick={() => fileInputRef.current?.click()}
-              disabled={selectedModelType == "local"}
+              disabled={selectedModelType == 'local'}
             >
               <Plus className="w-4 h-4" />
             </Button>
@@ -1892,29 +1899,29 @@ export default function ChatPage() {
                 placeholder="Type your message and use @ to mention chats..."
                 style={{
                   control: {
-                    backgroundColor: "transparent",
+                    backgroundColor: 'transparent',
                     fontSize: 14,
                   },
                   highlighter: {
-                    padding: "0.5rem 0.75rem",
-                    border: "none",
+                    padding: '0.5rem 0.75rem',
+                    border: 'none',
                   },
                   input: {
-                    padding: "0.5rem 0.75rem",
-                    border: "none",
-                    outline: "none",
-                    backgroundColor: "transparent",
+                    padding: '0.5rem 0.75rem',
+                    border: 'none',
+                    outline: 'none',
+                    backgroundColor: 'transparent',
                   },
                   suggestions: {
                     list: {
-                      backgroundColor: "white",
-                      border: "1px solid rgba(0,0,0,0.15)",
+                      backgroundColor: 'white',
+                      border: '1px solid rgba(0,0,0,0.15)',
                       fontSize: 14,
                     },
                     item: {
-                      padding: "5px 15px",
-                      "&focused": {
-                        backgroundColor: "#f5f5f5",
+                      padding: '5px 15px',
+                      '&focused': {
+                        backgroundColor: '#f5f5f5',
                       },
                     },
                   },
@@ -1929,14 +1936,14 @@ export default function ChatPage() {
                   displayTransform={(id: string, display: string) =>
                     `@${display}`
                   }
-                  style={{ backgroundColor: "#e0e2e4" }}
+                  style={{ backgroundColor: '#e0e2e4' }}
                   appendSpaceOnAdd
                 />
               </MentionsInput>
             ) : (
               <Textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Type your message in markdown..."
                 className="flex-1 resize-none min-h-[80px]"
@@ -1953,7 +1960,7 @@ export default function ChatPage() {
             ) : (
               <Button
                 onClick={handleSend}
-                disabled={isTyping || (!uploadedFile && input.trim() === "")}
+                disabled={isTyping || (!uploadedFile && input.trim() === '')}
               >
                 <Send className="w-4 h-4" />
               </Button>

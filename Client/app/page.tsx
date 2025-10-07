@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Zap, Star, Github, Twitter, Mail, Menu } from "lucide-react";
-import Link from "next/link";
-import SplashScreen from "./splashScreen";
-import { useState, useEffect } from "react";
-import ScrollToTop from "@/components/ui/scroll-to-top";
-import Layout from "@/components/layout";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Zap, Star, Github, Twitter, Mail, Menu } from 'lucide-react';
+import Link from 'next/link';
+import SplashScreen from './splashScreen';
+import { useState, useEffect } from 'react';
+import ScrollToTop from '@/components/ui/scroll-to-top';
+import Layout from '@/components/layout';
 
 export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);

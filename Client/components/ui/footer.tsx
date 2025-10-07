@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Zap, Star, Github, Twitter, Mail, Menu } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { useTheme } from "@/components/theme-provider";
+import { Zap, Star, Github, Twitter, Mail, Menu } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useTheme } from '@/components/theme-provider';
 
 export default function footer() {
   const { darkMode } = useTheme();
@@ -12,10 +12,11 @@ export default function footer() {
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           <div className="md:col-span-4">
-
             <Link href="/" className="flex items-center">
               <Image
-                src={darkMode ? "/logos/logo-dark.svg" : "/logos/logo-light.svg"}
+                src={
+                  darkMode ? '/logos/logo-dark.svg' : '/logos/logo-light.svg'
+                }
                 alt="PrivGPT Studio Logo"
                 width={290}
                 height={53}

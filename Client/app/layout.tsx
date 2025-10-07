@@ -1,24 +1,24 @@
-import type React from "react";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "sonner";
+import type React from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from 'sonner';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "PrivGPT Studio",
+  title: 'PrivGPT Studio',
   description:
-    "Experience the future of AI conversations with both cloud-powered Gemini and privacy-focused local models",
+    'Experience the future of AI conversations with both cloud-powered Gemini and privacy-focused local models',
   icons: {
-    icon: "/logos/logo-icon-light.svg",
+    icon: '/logos/logo-icon-light.svg',
 
     other: [
       {
         rel: 'icon',
         url: '/logos/logo-icon-dark.svg',
-        media: '(prefers-color-scheme: dark)', 
+        media: '(prefers-color-scheme: dark)',
       },
     ],
   },
