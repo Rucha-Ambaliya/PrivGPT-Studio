@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThemeToggle } from '@/components/theme-toggle';
 import SplashScreen from '../splashScreen';
 import { useState, useEffect } from 'react';
 import {
@@ -18,8 +17,7 @@ import {
   Heart,
   Target,
   Award,
-  Lightbulb,
-  Star,
+  Lightbulb
 } from 'lucide-react';
 import Link from 'next/link';
 import Head from 'next/head';

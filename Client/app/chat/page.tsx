@@ -28,7 +28,6 @@ import {
   Settings,
   Info,
   MessageSquare,
-  Zap,
   Home,
   Globe,
   Cpu,
@@ -48,7 +47,6 @@ import {
   File,
   ImageIcon,
   PlusCircle,
-  Square,
   ChevronLeft,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -196,7 +194,7 @@ export default function ChatPage() {
           rehypePlugins={[rehypeKatex]}
           components={{
             // Code blocks with syntax highlighting
-            code({ node, inline, className, children, ...props }: any) {
+            code({ inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : '';
 
@@ -569,7 +567,8 @@ export default function ChatPage() {
       try {
         localStorage.setItem('selected_model_name', 'gemini');
         localStorage.setItem('selected_model_type', 'cloud');
-      } catch (e) {
+      } catch (e: any) {
+        console.warn('error setting localStorage', e);
         /* ignore */
       }
     } else {
