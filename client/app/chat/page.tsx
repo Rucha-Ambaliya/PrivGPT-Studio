@@ -58,6 +58,7 @@ import {
   Square,
   ChevronLeft,
   LogOut,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -92,6 +93,9 @@ interface Message {
   role: "user" | "assistant";
   timestamp: Date;
   file?: UploadedFile;
+  versions?: string[]; // Array of all generated versions
+  versionTimestamps?: Date[]; // Timestamp for each version
+  currentVersionIndex?: number; // Index of currently displayed version (0-based)
 }
 
 type ChatSession = {
@@ -1043,6 +1047,9 @@ export default function ChatPage() {
           content: bot_response,
           role: "assistant",
           timestamp: new Date(data.timestamp),
+          versions: [bot_response],
+          versionTimestamps: [new Date(data.timestamp)],
+          currentVersionIndex: 0,
         };
 
         // Fallback detection for local model failures
@@ -1154,7 +1161,7 @@ export default function ChatPage() {
                       );
                     }
 
-                    // Update final message with timestamp
+                    // Update final message with timestamp and initialize versions
                     setMessages((prev) =>
                       prev.map((msg) =>
                         msg.id === tempAssistantMessage.id
@@ -1162,6 +1169,9 @@ export default function ChatPage() {
                               ...msg,
                               content: streamedContent,
                               timestamp: new Date(data.timestamp),
+                              versions: [streamedContent],
+                              versionTimestamps: [new Date(data.timestamp)],
+                              currentVersionIndex: 0,
                             }
                           : msg
                       )
@@ -1237,6 +1247,467 @@ export default function ChatPage() {
       setIsStreaming(false);
       setAbortController(null);
     }
+  };
+
+  // Handle retry/regenerate response for an assistant message with a different model
+  const handleRetryWithModel = async (assistantMessage: Message, modelName: string, modelType: "local" | "cloud") => {
+    // Find the user message that prompted this assistant message
+    const messageIndex = messages.findIndex((m) => m.id === assistantMessage.id);
+    if (messageIndex === -1 || messageIndex === 0) return;
+
+    // Find the previous user message
+    let userMessageIndex = messageIndex - 1;
+    while (userMessageIndex >= 0 && messages[userMessageIndex].role !== "user") {
+      userMessageIndex--;
+    }
+
+    if (userMessageIndex < 0) return;
+    const userMessage = messages[userMessageIndex];
+
+    // Check if a model is provided
+    if (!modelName || modelName.trim() === "") {
+      toast.error("Please select a model before retrying.");
+      return;
+    }
+
+    toast.info(`Regenerating response with ${modelName}...`);
+
+    // Use streaming endpoint if enabled and no file
+    const endpoint =
+      userMessage.file || !streamingEnabled
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/stream`;
+
+    const formData = new FormData();
+    formData.append("message", userMessage.content);
+    formData.append("model_type", modelType);
+    formData.append("model_name", modelName);
+    formData.append("timestamp", userMessage.timestamp.toISOString());
+    if (sessionId) formData.append("session_id", sessionId);
+
+    // append inference parameters
+    formData.append("temperature", temperature.toString());
+    formData.append("top_p", topP.toString());
+    formData.append("top_k", topK.toString());
+    formData.append("max_tokens", maxTokens.toString());
+    formData.append("frequency_penalty", frequencyPenalty.toString());
+    formData.append("presence_penalty", presencePenalty.toString());
+    if (stopSequence.trim()) {
+      formData.append("stop_sequence", stopSequence.trim());
+    }
+    if (seed !== "") {
+      formData.append("seed", seed.toString());
+    }
+    if (systemPrompt.trim()) {
+      formData.append("system_prompt", systemPrompt.trim());
+    }
+
+    // append file if it was part of the original message
+    if (userMessage.file) {
+      formData.append("uploaded_file", userMessage.file.file);
+    }
+
+    // Handle non-streaming or file upload
+    if (userMessage.file || !streamingEnabled) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch AI response");
+        }
+
+        const data = await response.json();
+        const bot_response = data.response || "No Reply";
+
+        // Initialize versions array if not exists
+        const versions = assistantMessage.versions || [assistantMessage.content];
+        const versionTimestamps = assistantMessage.versionTimestamps || [assistantMessage.timestamp];
+        versions.push(bot_response);
+        versionTimestamps.push(new Date(data.timestamp));
+
+        // Update message with new version
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessage.id
+              ? {
+                  ...msg,
+                  content: bot_response,
+                  versions: versions,
+                  versionTimestamps: versionTimestamps,
+                  currentVersionIndex: versions.length - 1,
+                  timestamp: new Date(data.timestamp),
+                }
+              : msg
+          )
+        );
+
+        setLatency(data.latency.toString());
+        toast.success("Response regenerated!");
+      } catch (error) {
+        console.error("Failed to regenerate response", error);
+        toast.error("Failed to regenerate response");
+      }
+      return;
+    }
+
+    // Handle streaming
+    let streamedContent = "";
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch AI response");
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let latencyValue = "0";
+      let timestampValue = new Date();
+
+      if (reader) {
+        // Temporarily update message to show loading
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessage.id ? { ...msg, content: "..." } : msg
+          )
+        );
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                switch (data.type) {
+                  case "chunk":
+                    if (streamedContent === "" && data.text) {
+                      streamedContent = data.text;
+                    } else {
+                      streamedContent += data.text;
+                    }
+                    // Update the message with streamed content
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessage.id
+                          ? { ...msg, content: streamedContent }
+                          : msg
+                      )
+                    );
+                    break;
+
+                  case "complete":
+                    latencyValue = data.latency?.toString() || "0";
+                    if (data.timestamp) {
+                      timestampValue = new Date(data.timestamp);
+                    }
+                    break;
+
+                  case "error":
+                    streamedContent = data.message;
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessage.id
+                          ? { ...msg, content: streamedContent }
+                          : msg
+                      )
+                    );
+                    break;
+                }
+              } catch (e) {
+                console.warn("Failed to parse SSE data:", e);
+              }
+            }
+          }
+        }
+      }
+
+      // Initialize versions array if not exists
+      const versions = assistantMessage.versions || [assistantMessage.content];
+      const versionTimestamps = assistantMessage.versionTimestamps || [assistantMessage.timestamp];
+      versions.push(streamedContent);
+      versionTimestamps.push(timestampValue);
+
+      // Update message with new version and timestamp
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessage.id
+            ? {
+                ...msg,
+                content: streamedContent,
+                versions: versions,
+                versionTimestamps: versionTimestamps,
+                currentVersionIndex: versions.length - 1,
+                timestamp: timestampValue,
+              }
+            : msg
+        )
+      );
+
+      setLatency(latencyValue);
+      toast.success("Response regenerated!");
+    } catch (error) {
+      console.error("Failed to regenerate response", error);
+      toast.error("Failed to regenerate response");
+    }
+  };
+
+  // Handle retry/regenerate response for an assistant message
+  const handleRetry = async (assistantMessage: Message) => {
+    // Find the user message that prompted this assistant message
+    const messageIndex = messages.findIndex((m) => m.id === assistantMessage.id);
+    if (messageIndex === -1 || messageIndex === 0) return;
+
+    // Find the previous user message
+    let userMessageIndex = messageIndex - 1;
+    while (userMessageIndex >= 0 && messages[userMessageIndex].role !== "user") {
+      userMessageIndex--;
+    }
+
+    if (userMessageIndex < 0) return;
+    const userMessage = messages[userMessageIndex];
+
+    // Check if a model is selected
+    if (!selectedModel || selectedModel.trim() === "") {
+      toast.error("Please select a model before retrying.");
+      return;
+    }
+
+    toast.info("Regenerating response...");
+
+    // Use streaming endpoint if enabled and no file
+    const endpoint =
+      userMessage.file || !streamingEnabled
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/stream`;
+
+    const formData = new FormData();
+    formData.append("message", userMessage.content);
+    formData.append("model_type", selectedModelType);
+    formData.append("model_name", selectedModel);
+    formData.append("timestamp", userMessage.timestamp.toISOString());
+    if (sessionId) formData.append("session_id", sessionId);
+
+    // append inference parameters
+    formData.append("temperature", temperature.toString());
+    formData.append("top_p", topP.toString());
+    formData.append("top_k", topK.toString());
+    formData.append("max_tokens", maxTokens.toString());
+    formData.append("frequency_penalty", frequencyPenalty.toString());
+    formData.append("presence_penalty", presencePenalty.toString());
+    if (stopSequence.trim()) {
+      formData.append("stop_sequence", stopSequence.trim());
+    }
+    if (seed !== "") {
+      formData.append("seed", seed.toString());
+    }
+    if (systemPrompt.trim()) {
+      formData.append("system_prompt", systemPrompt.trim());
+    }
+
+    // append file if it was part of the original message
+    if (userMessage.file) {
+      formData.append("uploaded_file", userMessage.file.file);
+    }
+
+    // Handle non-streaming or file upload
+    if (userMessage.file || !streamingEnabled) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch AI response");
+        }
+
+        const data = await response.json();
+        const bot_response = data.response || "No Reply";
+
+        // Initialize versions array if not exists
+        const versions = assistantMessage.versions || [assistantMessage.content];
+        const versionTimestamps = assistantMessage.versionTimestamps || [assistantMessage.timestamp];
+        versions.push(bot_response);
+        versionTimestamps.push(new Date(data.timestamp));
+
+        // Update message with new version
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessage.id
+              ? {
+                  ...msg,
+                  content: bot_response,
+                  versions: versions,
+                  versionTimestamps: versionTimestamps,
+                  currentVersionIndex: versions.length - 1,
+                  timestamp: new Date(data.timestamp),
+                }
+              : msg
+          )
+        );
+
+        setLatency(data.latency.toString());
+        toast.success("Response regenerated!");
+      } catch (error) {
+        console.error("Failed to regenerate response", error);
+        toast.error("Failed to regenerate response");
+      }
+      return;
+    }
+
+    // Handle streaming
+    let streamedContent = "";
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch AI response");
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let latencyValue = "0";
+      let timestampValue = new Date();
+
+      if (reader) {
+        // Temporarily update message to show loading
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessage.id ? { ...msg, content: "..." } : msg
+          )
+        );
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                switch (data.type) {
+                  case "chunk":
+                    if (streamedContent === "" && data.text) {
+                      streamedContent = data.text;
+                    } else {
+                      streamedContent += data.text;
+                    }
+                    // Update the message with streamed content
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessage.id
+                          ? { ...msg, content: streamedContent }
+                          : msg
+                      )
+                    );
+                    break;
+
+                  case "complete":
+                    latencyValue = data.latency?.toString() || "0";
+                    if (data.timestamp) {
+                      timestampValue = new Date(data.timestamp);
+                    }
+                    break;
+
+                  case "error":
+                    streamedContent = data.message;
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessage.id
+                          ? { ...msg, content: streamedContent }
+                          : msg
+                      )
+                    );
+                    break;
+                }
+              } catch (e) {
+                console.warn("Failed to parse SSE data:", e);
+              }
+            }
+          }
+        }
+      }
+
+      // Initialize versions array if not exists
+      const versions = assistantMessage.versions || [assistantMessage.content];
+      const versionTimestamps = assistantMessage.versionTimestamps || [assistantMessage.timestamp];
+      versions.push(streamedContent);
+      versionTimestamps.push(timestampValue);
+
+      // Update message with new version and timestamp
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessage.id
+            ? {
+                ...msg,
+                content: streamedContent,
+                versions: versions,
+                versionTimestamps: versionTimestamps,
+                currentVersionIndex: versions.length - 1,
+                timestamp: timestampValue,
+              }
+            : msg
+        )
+      );
+
+      setLatency(latencyValue);
+      toast.success("Response regenerated!");
+    } catch (error) {
+      console.error("Failed to regenerate response", error);
+      toast.error("Failed to regenerate response");
+    }
+  };
+
+  // Handle version navigation
+  const handleVersionChange = (messageId: string, direction: "prev" | "next") => {
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== messageId || !msg.versions || msg.versions.length <= 1) {
+          return msg;
+        }
+
+        const currentIdx = msg.currentVersionIndex ?? 0;
+        let newIdx = currentIdx;
+
+        if (direction === "prev" && currentIdx > 0) {
+          newIdx = currentIdx - 1;
+        } else if (direction === "next" && currentIdx < msg.versions.length - 1) {
+          newIdx = currentIdx + 1;
+        }
+
+        if (newIdx !== currentIdx) {
+          return {
+            ...msg,
+            content: msg.versions[newIdx],
+            currentVersionIndex: newIdx,
+            timestamp: msg.versionTimestamps?.[newIdx] || msg.timestamp,
+          };
+        }
+
+        return msg;
+      })
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -1981,17 +2452,32 @@ export default function ChatPage() {
               <PlusCircle className="w-4 h-4 mr-2" />
               New Chat
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
             <Button
               variant="ghost"
               className="w-full justify-start"
               onClick={() => setConfigureModelModal(true)}
             >
               <Settings className="w-4 h-4 mr-2" />
-              Configure Model
+              Settings
+            </Button>
+            <Button variant="ghost" className="w-full justify-start">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-info w-4 h-4 mr-2"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+              Model Info
             </Button>
             <Button variant="ghost" className="w-full justify-start" asChild>
               <Link href="/">
@@ -2235,33 +2721,135 @@ export default function ChatPage() {
                       <Copy className="w-4 h-4" />
                     </Button>
                     {message.role === "assistant" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title={
-                          speakingMessageId === message.id
-                            ? "Stop reading"
-                            : "Read aloud"
-                        }
-                        aria-label={
-                          speakingMessageId === message.id
-                            ? "Stop reading"
-                            : "Read aloud"
-                        }
-                        disabled={!speechSupported || message.content === "..."}
-                        onClick={() => handleSpeakClick(message)}
-                        className={
-                          speakingMessageId === message.id
-                            ? "bg-red-500 text-white hover:bg-red-600"
-                            : ""
-                        }
-                      >
-                        {speakingMessageId === message.id ? (
-                          <Square className="w-4 h-4" />
-                        ) : (
-                          <Volume2 className="w-4 h-4" />
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={
+                            speakingMessageId === message.id
+                              ? "Stop reading"
+                              : "Read aloud"
+                          }
+                          aria-label={
+                            speakingMessageId === message.id
+                              ? "Stop reading"
+                              : "Read aloud"
+                          }
+                          disabled={!speechSupported || message.content === "..."}
+                          onClick={() => handleSpeakClick(message)}
+                          className={
+                            speakingMessageId === message.id
+                              ? "bg-red-500 text-white hover:bg-red-600"
+                              : ""
+                          }
+                        >
+                          {speakingMessageId === message.id ? (
+                            <Square className="w-4 h-4" />
+                          ) : (
+                            <Volume2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Retry answer"
+                          aria-label="Retry answer"
+                          disabled={message.content === "..."}
+                          onClick={() => handleRetry(message)}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </Button>
+                        {/* Regenerate with different model */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Regenerate with different model"
+                              aria-label="Regenerate with different model"
+                              disabled={message.content === "..."}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path d="M15.4707 17.137C15.211 17.3967 14.789 17.3967 14.5293 17.137C14.2699 16.8774 14.27 16.4563 14.5293 16.1966L15.4707 17.137ZM14.5293 11.1966C14.7567 10.9693 15.1081 10.9409 15.3662 11.1117L15.4707 11.1966L17.9707 13.6966C18.23 13.9563 18.2301 14.3774 17.9707 14.637L15.4707 17.137L15 16.6663L14.5293 16.1966L15.8945 14.8314H14.5869C14.2748 14.8288 14.0174 14.818 13.7744 14.7747L13.6299 14.7445C13.3878 14.6863 13.1539 14.5994 12.9326 14.4867L12.7148 14.3656C12.3799 14.1603 12.1014 13.8751 11.6914 13.4652L11.1963 12.9701L11.667 12.5003L12.1367 12.0296L12.6318 12.5247C13.0865 12.9794 13.2406 13.1269 13.4102 13.2308L13.5361 13.3021C13.6644 13.3674 13.8002 13.4168 13.9404 13.4505L14.0957 13.4788C14.2674 13.4996 14.508 13.5013 14.9902 13.5013H15.8936L14.5293 12.137L14.4443 12.0326C14.2741 11.7746 14.3024 11.4238 14.5293 11.1966ZM14.5293 2.86263C14.7566 2.63536 15.1081 2.60716 15.3662 2.77767L15.4707 2.86263L17.9707 5.36263L18.0557 5.46712C18.2018 5.68842 18.2018 5.97825 18.0557 6.19954L17.9707 6.30404L15.4707 8.80404C15.211 9.06373 14.789 9.06373 14.5293 8.80404C14.2696 8.54434 14.2696 8.12233 14.5293 7.86263L15.8936 6.49837H14.9902C14.5079 6.49837 14.2674 6.50102 14.0957 6.52181L13.9404 6.54915C13.8001 6.58286 13.6645 6.63319 13.5361 6.69857L13.4102 6.76888C13.3253 6.82085 13.2445 6.88373 13.1279 6.99056L12.6318 7.47493L5.80859 14.2982C5.44991 14.6569 5.19151 14.9199 4.9082 15.1175L4.78516 15.1986C4.57277 15.3287 4.34572 15.4333 4.10938 15.5101L3.87012 15.5775C3.58342 15.6463 3.28545 15.6613 2.90723 15.6644L2.5 15.6654L2.36621 15.6517C2.06315 15.5898 1.83512 15.3216 1.83496 15.0003C1.83496 14.6331 2.13273 14.3353 2.5 14.3353L3.20117 14.3275C3.36059 14.3206 3.46295 14.3077 3.55957 14.2845L3.69824 14.2454C3.83527 14.2009 3.96671 14.1402 4.08984 14.0648L4.21875 13.974C4.35485 13.8673 4.52707 13.6988 4.86816 13.3577L11.6914 6.5345L11.9775 6.25032C12.2445 5.98777 12.4637 5.78904 12.7148 5.63509L12.9326 5.51302C13.1539 5.40035 13.3879 5.31429 13.6299 5.25618L13.7744 5.22591C14.1145 5.16528 14.4829 5.16829 14.9902 5.16829H15.8936L14.5293 3.80404L14.4443 3.69954C14.2738 3.44141 14.302 3.0899 14.5293 2.86263ZM11.1963 12.0296C11.4559 11.77 11.877 11.7701 12.1367 12.0296L11.1963 12.9701C10.9368 12.7103 10.9366 12.2893 11.1963 12.0296ZM2.90723 4.33529C3.28545 4.33837 3.58342 4.35337 3.87012 4.4222L4.10938 4.48958C4.34575 4.56639 4.57274 4.67094 4.78516 4.80111L4.9082 4.88216C5.19157 5.07978 5.44984 5.34275 5.80859 5.7015L7.13672 7.02962L7.22168 7.13411C7.39224 7.39225 7.36401 7.74276 7.13672 7.97005C6.90943 8.19734 6.55892 8.22557 6.30078 8.05501L6.19629 7.97005L4.86816 6.64193C4.52694 6.3007 4.35488 6.13241 4.21875 6.02572L4.08984 5.93587C3.96673 5.86043 3.83525 5.79974 3.69824 5.75521L3.55957 5.71615C3.46296 5.69295 3.36058 5.68005 3.20117 5.67318L2.5 5.66536L2.36621 5.65169C2.06315 5.58981 1.83511 5.32163 1.83496 5.00032C1.83496 4.63306 2.13273 4.33529 2.5 4.33529H2.90723Z" />
+                              </svg>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-56">
+                            {localModels.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                  Local Models
+                                </div>
+                                {localModels.map((model) => (
+                                  <DropdownMenuItem
+                                    key={`local-${model}`}
+                                    onClick={() => handleRetryWithModel(message, model, "local")}
+                                  >
+                                    {model}
+                                  </DropdownMenuItem>
+                                ))}
+                              </>
+                            )}
+                            {cloudModels.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                  Cloud Models
+                                </div>
+                                {cloudModels.map((model) => (
+                                  <DropdownMenuItem
+                                    key={`cloud-${model}`}
+                                    onClick={() => handleRetryWithModel(message, model, "cloud")}
+                                  >
+                                    {model}
+                                  </DropdownMenuItem>
+                                ))}
+                              </>
+                            )}
+                            {localModels.length === 0 && cloudModels.length === 0 && (
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                No models available
+                              </div>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        {/* Version navigation for assistant messages with multiple versions */}
+                        {message.versions &&
+                         message.versions.length > 1 && (
+                          <div className="flex items-center gap-1 ml-2 text-xs opacity-70">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              title="Previous version"
+                              aria-label="Previous version"
+                              disabled={(message.currentVersionIndex ?? 0) === 0}
+                              onClick={() => handleVersionChange(message.id, "prev")}
+                            >
+                              <ChevronLeft className="w-3 h-3" />
+                            </Button>
+                            <span className="min-w-[40px] text-center">
+                              {(message.currentVersionIndex ?? 0) + 1}/{message.versions.length}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              title="Next version"
+                              aria-label="Next version"
+                              disabled={
+                                (message.currentVersionIndex ?? 0) === message.versions.length - 1
+                              }
+                              onClick={() => handleVersionChange(message.id, "next")}
+                            >
+                              <ChevronRight className="w-3 h-3" />
+                            </Button>
+                          </div>
                         )}
-                      </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -2553,11 +3141,11 @@ export default function ChatPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Configure Model Parameters Modal */}
+      {/* Settings Modal */}
       <Dialog open={configureModelModal} onOpenChange={setConfigureModelModal}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Configure Model</DialogTitle>
+            <DialogTitle>Settings</DialogTitle>
             <DialogDescription>
               Customize system prompt and inference parameters for the model
             </DialogDescription>
