@@ -333,3 +333,56 @@ img[loading="lazy"].loaded {
 .dark .markdown-content .token.string {
   color: #9ecbff;
 }
+
+/* =========================== */
+/* Home Page Hover Animations & Cards */
+/* =========================== */
+.home-page h1,
+.home-page h2,
+.home-page h3 {
+  transition: transform 0.3s ease;
+}
+
+.home-page h1:hover,
+.home-page h2:hover,
+.home-page h3:hover {
+  transform: scale(1.05);
+}
+
+/* Cards / Boxes */
+.home-page .group-hover-card {
+  border: 1.5px solid rgba(0, 0, 0, 0.15); /* visible thin border for light theme */
+  border-radius: 12px; /* rounded corners */
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.3s ease;
+  will-change: transform;
+  background-color: inherit;
+}
+
+/* Dark mode border */
+.dark .home-page .group-hover-card {
+  border: 1.5px solid rgba(255, 255, 255, 0.15); /* visible thin border for dark theme */
+}
+
+.home-page .group-hover-card:hover {
+  transform: scale(1.03) translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Stats boxes & steps */
+.home-page .grid > div {
+  border: 1.5px solid rgba(0, 0, 0, 0.1); /* visible thin border for light theme */
+  border-radius: 12px;
+  padding: 1rem;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.3s ease;
+  background-color: inherit;
+}
+
+/* Dark mode for stats / steps */
+.dark .home-page .grid > div {
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.home-page .grid > div:hover {
+  transform: scale(1.03) translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
