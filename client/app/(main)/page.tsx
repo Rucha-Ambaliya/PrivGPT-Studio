@@ -18,7 +18,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="home-page min-h-screen bg-background">
       {/* Rest of your component remains exactly the same */}
       {/* Hero Section */}
       <section className="py-20 px-4">
