@@ -114,7 +114,7 @@ import { useRouter } from "next/navigation";
 
 export default function ChatPage() {
   const { darkMode } = useTheme();
-  const { token, logout, isLoading } = useAuth();
+  const { token, logout, isLoading, isAuthenticated, user } = useAuth();
   const router = useRouter();
 
   // Loading dots animation component
@@ -567,6 +567,11 @@ export default function ChatPage() {
   const [stopSequence, setStopSequence] = useState("");
   const [seed, setSeed] = useState<number | "">(""); // Empty string means random seed
   const [systemPrompt, setSystemPrompt] = useState(""); // System prompt for model behavior
+  
+  // Guest user restrictions
+  const [guestMessageCount, setGuestMessageCount] = useState(0);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const MAX_GUEST_MESSAGES = 1; // Unauthorized users can only send 1 message
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
@@ -1014,6 +1019,15 @@ export default function ChatPage() {
       return;
     }
 
+    // GUEST USER RESTRICTIONS: Check if unauthorized user has exceeded message limit
+    if (!isAuthenticated) {
+      if (guestMessageCount >= MAX_GUEST_MESSAGES) {
+        setShowAuthPrompt(true);
+        toast.error("Sign up to continue chatting! Guests are limited to 1 message.");
+        return;
+      }
+    }
+
     // remove backslashes added by react-mentions markup
     const unescapedInput = input.replace(/\\([\[\]\(\)])/g, "$1");
 
@@ -1035,6 +1049,11 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
+    // Increment guest message count for unauthorized users
+    if (!isAuthenticated) {
+      setGuestMessageCount(prev => prev + 1);
+    }
+
     // Use streaming endpoint for text-only messages (if streaming is enabled), regular endpoint for file uploads or when streaming is disabled
     const endpoint =
       uploadedFile || !streamingEnabled
@@ -1051,7 +1070,11 @@ export default function ChatPage() {
     formData.append("model_type", selectedModelType);
     formData.append("model_name", selectedModel);
     formData.append("timestamp", userMessage.timestamp.toISOString());
-    if (sessionId) formData.append("session_id", sessionId);
+    
+    // Only add session_id for authenticated users (guests don't get saved sessions)
+    if (sessionId && isAuthenticated) {
+      formData.append("session_id", sessionId);
+    }
 
     // append inference parameters
     formData.append("temperature", temperature.toString());
@@ -2533,8 +2556,8 @@ export default function ChatPage() {
               variant="ghost"
               className="w-full justify-start"
               onClick={() => {
-                if (!token) {
-                  router.push("/sign-in");
+                if (!isAuthenticated) {
+                  setShowAuthPrompt(true);
                   return;
                 }
                 handleNewChatSession();
@@ -2545,9 +2568,9 @@ export default function ChatPage() {
               }}
             >
               <PlusCircle className="w-4 h-4 mr-2" />
-              New Chat
+              {isAuthenticated ? "New Chat" : "Sign Up for Multiple Chats"}
             </Button>
-            {token && (
+            {isAuthenticated && (
               <Button
                 variant="ghost"
                 className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
@@ -3029,6 +3052,25 @@ export default function ChatPage() {
             </Button>
           </div>
 
+          {/* Guest Limitation Indicator */}
+          {!isAuthenticated && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    Guest Mode: {MAX_GUEST_MESSAGES - guestMessageCount} message{MAX_GUEST_MESSAGES - guestMessageCount !== 1 ? 's' : ''} remaining
+                  </span>
+                </div>
+                <Link href="/sign-up">
+                  <Button size="sm" variant="outline" className="text-xs h-7">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Input Row */}
           <div className="flex space-x-2">
             <input
@@ -3509,6 +3551,56 @@ export default function ChatPage() {
             }}>
               Save Changes
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Authentication Prompt Dialog for Guests */}
+      <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Continue Chatting?
+            </DialogTitle>
+            <DialogDescription>
+              You've reached the limit for guest users. Sign up to continue unlimited conversations and save your chat history!
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <h4 className="font-semibold mb-2">With an account, you get:</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Unlimited AI conversations</li>
+                <li>• Save and manage chat history</li>
+                <li>• Access to all AI models</li>
+                <li>• Leave reviews and feedback</li>
+                <li>• Personalized experience</li>
+              </ul>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowAuthPrompt(false)}
+              className="w-full sm:w-auto"
+            >
+              Continue as Guest
+            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Link href="/sign-in" className="flex-1 sm:flex-initial">
+                <Button variant="outline" className="w-full">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/sign-up" className="flex-1 sm:flex-initial">
+                <Button className="w-full">
+                  Sign Up
+                </Button>
+              </Link>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -37,4 +37,6 @@ def create_app():
     app.register_blueprint(chat_bp)
     from server.routes.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
+    from server.routes.review_routes import review_bp
+    app.register_blueprint(review_bp)
     return app

@@ -8,6 +8,7 @@ import { Zap, Star, Github, Twitter, Mail, Menu } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import ScrollToTop from "@/components/ui/scroll-to-top";
+import { DynamicTestimonials } from "@/components/dynamic-testimonials";
 
 export default function HomePage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -183,99 +184,7 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            What Our Users Say
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "The local model option is a game-changer for our
-                  privacy-sensitive work. Amazing performance!"
-                </p>
-                <div className="flex items-center">
-                  <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="https://salondesmaires-po.fr/wp-content/uploads/2015/04/speaker-3-v2.jpg" />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold">John Doe</div>
-                    <div className="text-sm text-muted-foreground">
-                      Security Engineer
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "Seamless switching between Cloud and local models. Perfect
-                  for different use cases."
-                </p>
-                <div className="flex items-center">
-                  <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="https://s3.amazonaws.com/media.mixrank.com/profilepic/30051c3ae8729c984c3c9d8a51ba7df8" />
-                    <AvatarFallback>SM</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold">Sarah Miller</div>
-                    <div className="text-sm text-muted-foreground">
-                      Product Manager
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "Best AI chat interface I've used. Clean, fast, and
-                  incredibly intuitive."
-                </p>
-                <div className="flex items-center">
-                  <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src="https://tse1.mm.bing.net/th/id/OIP.6FXhGomoaY1IKhQp0zFPfwHaEK?rs=1&pid=ImgDetMain&o=7&rm=3" />
-                    <AvatarFallback>MJ</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold">Mike Johnson</div>
-                    <div className="text-sm text-muted-foreground">
-                      Developer
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+      <DynamicTestimonials />
 
       {/* Live Demo Preview */}
       <section className="py-16 px-4 bg-muted/50">
