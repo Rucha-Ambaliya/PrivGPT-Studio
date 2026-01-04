@@ -56,6 +56,9 @@ import {
   Square,
   ChevronLeft,
   RefreshCw,
+  LogOut,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -112,10 +115,58 @@ interface UploadedFile {
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
+// Custom hook for guest draft auto-save
+function useGuestDraft() {
+  const { token } = useAuth();
+  const [guestDraft, setGuestDraft] = useState('');
+  const [isGuest, setIsGuest] = useState(true);
+
+  // Check if user is guest (not logged in)
+  useEffect(() => {
+    setIsGuest(!token);
+  }, [token]);
+
+  // Load saved draft on mount (only for guests)
+  useEffect(() => {
+    if (isGuest) {
+      const savedDraft = localStorage.getItem('guest_prompt_draft');
+      if (savedDraft) {
+        setGuestDraft(savedDraft);
+      }
+    }
+  }, [isGuest]);
+
+  // Save draft to localStorage (only for guests)
+  const saveGuestDraft = (text: string) => {
+    if (isGuest) {
+      localStorage.setItem('guest_prompt_draft', text);
+      setGuestDraft(text);
+    }
+  };
+
+  // Clear draft (only for guests)
+  const clearGuestDraft = () => {
+    if (isGuest) {
+      localStorage.removeItem('guest_prompt_draft');
+      setGuestDraft('');
+    }
+  };
+
+  return {
+    guestDraft,
+    saveGuestDraft,
+    clearGuestDraft,
+    isGuest
+  };
+}
+
 export default function ChatPage() {
   const { darkMode } = useTheme();
   const { token, logout, isLoading } = useAuth();
   const router = useRouter();
+  
+  // Add guest draft hook
+  const { guestDraft, saveGuestDraft, clearGuestDraft, isGuest } = useGuestDraft();
 
   // Loading dots animation component
   const LoadingDots = () => {
@@ -568,6 +619,13 @@ export default function ChatPage() {
   const [seed, setSeed] = useState<number | "">(""); // Empty string means random seed
   const [systemPrompt, setSystemPrompt] = useState(""); // System prompt for model behavior
 
+  // Initialize input with guest draft on component mount
+  useEffect(() => {
+    if (isGuest && guestDraft) {
+      setInput(guestDraft);
+    }
+  }, [isGuest, guestDraft]);
+
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
     return () => clearTimeout(timer);
@@ -643,13 +701,13 @@ export default function ChatPage() {
     text = text.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, "$1");
 
     // Remove specific markdown formatting patterns (most specific first)
-    text = text.replace(/\*\*\*(.+?)\*\*\*/gs, "$1"); // ***bold italic***
-    text = text.replace(/___(.+?)___/gs, "$1"); // ___bold italic___
-    text = text.replace(/\*\*(.+?)\*\*/gs, "$1"); // **bold**
-    text = text.replace(/__(.+?)__/gs, "$1"); // __bold__
-    text = text.replace(/\*(.+?)\*/gs, "$1"); // *italic*
-    text = text.replace(/_(.+?)_/gs, "$1"); // _italic_
-    text = text.replace(/~~(.+?)~~/gs, "$1"); // ~~strikethrough~~
+    text = text.replace(/\*\*\*[\s\S]*?\*\*\*/g, "$1"); // ***bold italic***
+    text = text.replace(/___[\s\S]*?___/g, "$1"); // ___bold italic___
+    text = text.replace(/\*\*[\s\S]*?\*\*/g, "$1"); // **bold**
+    text = text.replace(/__[\s\S]*?__/g, "$1"); // __bold__
+    text = text.replace(/\*[\s\S]*?\*/g, "$1"); // *italic*
+    text = text.replace(/_[\s\S]*?_/g, "$1"); // _italic_
+    text = text.replace(/~~[\s\S]*?~~/g, "$1"); // ~~strikethrough~~
 
     // Remove headers (# symbols at start of line)
     text = text.replace(/^#{1,6}\s+/gm, "");
@@ -784,65 +842,129 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/models`
-        );
+  // ========== FIXED: Updated fetchModels function ==========
+  const fetchModels = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      
+      // Validate backend URL
+      if (!backendUrl) {
+        console.error("NEXT_PUBLIC_BACKEND_URL is not defined");
+        toast.error("Backend URL not configured");
+        return;
+      }
+
+      const response = await fetch(`${backendUrl}/models`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      // Check if response is HTML instead of JSON
+      const contentType = response.headers.get('content-type');
+      
+      if (!contentType || !contentType.includes('application/json')) {
+        // If not JSON, get text to see what we got
+        const text = await response.text();
+        
+        // Check if it's HTML
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          throw new Error('Backend returned HTML instead of JSON. Is the server running?');
+        }
+        
+        // Try to parse as JSON anyway
+        try {
+          const data = JSON.parse(text);
+          processModelsData(data);
+        } catch (parseError) {
+          console.error('Failed to parse response:', parseError);
+          throw new Error(`Invalid response from server: ${text.substring(0, 100)}...`);
+        }
+      } else {
+        // It's JSON, parse normally
         const data = await response.json();
-        const local: string[] = data.local_models || [];
-        const cloud: string[] = data.cloud_models || [];
-        setLocalModels(local);
-        setCloudModels(cloud);
+        processModelsData(data);
+      }
+      
+    } catch (error: any) {
+      console.error("Failed to fetch models:", error);
+      
+      // Show user-friendly error
+      if (error.message.includes('HTML instead of JSON')) {
+        toast.error("Backend server not responding. Please ensure the server is running.");
+      } else if (error.message.includes('Failed to fetch')) {
+        toast.error("Cannot connect to backend server. Check if server is running.");
+      } else {
+        toast.error("Failed to load AI models. Using fallback options.");
+      }
+      
+      // Set fallback models
+      setLocalModels([]);
+      setCloudModels([]);
+      setSelectedModel("gemini");
+      setSelectedModelType("cloud");
+    }
+  };
 
-        // Attempt restore from localStorage
-        const storedModel =
-          typeof window !== "undefined"
-            ? localStorage.getItem("selected_model_name")
-            : null;
-        const storedType =
-          (typeof window !== "undefined"
-            ? (localStorage.getItem("selected_model_type") as
-              | "local"
-              | "cloud"
-              | null)
-            : null);
+  // Helper function to process models data
+  const processModelsData = (data: any) => {
+    const local: string[] = data.local_models || [];
+    const cloud: string[] = data.cloud_models || [];
+    setLocalModels(local);
+    setCloudModels(cloud);
 
-        // Always select the first available model as default
-        let modelToSelect = "";
-        let typeToSelect: "local" | "cloud" = "local";
+    // Attempt restore from localStorage
+    const storedModel = localStorage.getItem("selected_model_name");
+    const storedType = localStorage.getItem("selected_model_type") as "local" | "cloud" | null;
 
-        // First priority: stored model if still available
-        if (
-          storedModel &&
-          ((storedType === "local" && local.includes(storedModel)) ||
-            (storedType === "cloud" && cloud.includes(storedModel)))
-        ) {
-          modelToSelect = storedModel;
-          typeToSelect = storedType as "local" | "cloud";
-        } else if (local.length > 0) {
-          modelToSelect = local[0];
-          typeToSelect = "local";
-        } else if (cloud.length > 0) {
-          modelToSelect = cloud[0];
-          typeToSelect = "cloud";
-        }
+    // Always select the first available model as default
+    let modelToSelect = "";
+    let typeToSelect: "local" | "cloud" = "local";
 
-        // Set the selected model
-        if (modelToSelect) {
-          setSelectedModel(modelToSelect);
-          setSelectedModelType(typeToSelect);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("selected_model_name", modelToSelect);
-            localStorage.setItem("selected_model_type", typeToSelect);
-          }
-        }
+    // First priority: stored model if still available
+    if (
+      storedModel &&
+      ((storedType === "local" && local.includes(storedModel)) ||
+        (storedType === "cloud" && cloud.includes(storedModel)))
+    ) {
+      modelToSelect = storedModel;
+      typeToSelect = storedType as "local" | "cloud";
+    } else if (local.length > 0) {
+      modelToSelect = local[0];
+      typeToSelect = "local";
+    } else if (cloud.length > 0) {
+      modelToSelect = cloud[0];
+      typeToSelect = "cloud";
+    }
+
+    // Set the selected model
+    if (modelToSelect) {
+      setSelectedModel(modelToSelect);
+      setSelectedModelType(typeToSelect);
+      localStorage.setItem("selected_model_name", modelToSelect);
+      localStorage.setItem("selected_model_type", typeToSelect);
+    }
+  };
+
+  // ========== FIXED: Updated useEffect for fetchModels ==========
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadModels = async () => {
+      try {
+        await fetchModels();
       } catch (error) {
-        console.error("Failed to fetch models:", error);
+        if (isMounted) {
+          console.error("Error in fetchModels:", error);
+        }
       }
     };
-    fetchModels();
+
+    loadModels();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const fallbackToGemini = (errorText: string) => {
@@ -967,7 +1089,6 @@ export default function ChatPage() {
 
     fetchChatSessionHistory();
   }, [token, isLoading]); // Re-fetch when auth state changes
-  // The button should be enabled for logged-in users.
 
   useEffect(() => {
     let wasOffline = false; // track previous state
@@ -997,8 +1118,9 @@ export default function ChatPage() {
     const interval = setInterval(checkStatus, 5000); // Poll every 30s
 
     return () => clearInterval(interval);
-  }, [localModels, selectedModelType]); // Add selectedModelType to dependencies
+  }, [localModels, selectedModelType]);
 
+  // MODIFIED: Updated to clear guest draft on send
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -1034,6 +1156,11 @@ export default function ChatPage() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    // Clear guest draft after sending
+    if (isGuest) {
+      clearGuestDraft();
+    }
 
     // Use streaming endpoint for text-only messages (if streaming is enabled), regular endpoint for file uploads or when streaming is disabled
     const endpoint =
@@ -1800,6 +1927,7 @@ export default function ChatPage() {
     );
   };
 
+  // MODIFIED: Updated to auto-save for guests
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -2547,7 +2675,8 @@ export default function ChatPage() {
               <PlusCircle className="w-4 h-4 mr-2" />
               New Chat
             </Button>
-            {token && (
+            {/* ADDED: Auth buttons in sidebar */}
+            {token ? (
               <Button
                 variant="ghost"
                 className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
@@ -2556,24 +2685,28 @@ export default function ChatPage() {
                   router.push("/sign-in");
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-4 h-4 mr-2"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" x2="9" y1="12" y2="12" />
-                </svg>
+                <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => router.push("/sign-in")}
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => router.push("/sign-up")}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Sign Up
+                </Button>
+              </>
             )}
             <Button
               variant="ghost"
@@ -2584,22 +2717,7 @@ export default function ChatPage() {
               Settings
             </Button>
             <Button variant="ghost" className="w-full justify-start">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-info w-4 h-4 mr-2"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-              </svg>
+              <Info className="w-4 h-4 mr-2" />
               Model Info
             </Button>
             <Button variant="ghost" className="w-full justify-start" asChild>
@@ -2739,11 +2857,49 @@ export default function ChatPage() {
                 </p>
               </div>
             </div>
-            <Badge
-              variant={selectedModelType === "cloud" ? "default" : "secondary"}
-            >
-              {selectedModelType === "cloud" ? "Cloud" : "Local"}
-            </Badge>
+            <div className="flex items-center space-x-3">
+              {/* ADDED: Auth buttons in chat header for mobile */}
+              {token ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  onClick={() => {
+                    logout();
+                    router.push("/sign-in");
+                  }}
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="ml-1 hidden sm:inline">Sign Out</span>
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hidden sm:flex"
+                    onClick={() => router.push("/sign-in")}
+                  >
+                    <LogIn className="w-4 h-4 mr-1" />
+                    Sign In
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="hidden sm:flex"
+                    onClick={() => router.push("/sign-up")}
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Sign Up
+                  </Button>
+                </>
+              )}
+              <Badge
+                variant={selectedModelType === "cloud" ? "default" : "secondary"}
+              >
+                {selectedModelType === "cloud" ? "Cloud" : "Local"}
+              </Badge>
+            </div>
           </div>
         </div>
 
@@ -3061,8 +3217,14 @@ export default function ChatPage() {
               {chatSessionSuggestions.length > 0 ? (
                 <MentionsInput
                   value={input}
-                  onChange={(_event, newValue) => setInput(newValue)}
-                  placeholder="Type your message and use @ to mention chats..."
+                  onChange={(_event, newValue) => {
+                    setInput(newValue);
+                    // Auto-save for guest users
+                    if (isGuest) {
+                      saveGuestDraft(newValue);
+                    }
+                  }}
+                  placeholder={isGuest ? "Type your message and use @ to mention chats... (Auto-saved for guests)" : "Type your message and use @ to mention chats..."}
                   style={{
                     control: {
                       backgroundColor: "transparent",
@@ -3110,9 +3272,15 @@ export default function ChatPage() {
               ) : (
                 <Textarea
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    // Auto-save for guest users
+                    if (isGuest) {
+                      saveGuestDraft(e.target.value);
+                    }
+                  }}
                   onKeyDown={handleKeyPress}
-                  placeholder="Type your message in markdown..."
+                  placeholder={isGuest ? "Type your message... (Auto-saved for guests)" : "Type your message..."}
                   className={`flex-1 resize-none min-h-[80px] ${isRecording ? "text-transparent caret-foreground" : ""
                     }`}
                 />
@@ -3138,9 +3306,33 @@ export default function ChatPage() {
 
           {/* Action Buttons */}
           <div className="flex justify-between items-center mt-3">
-            <p className="text-xs text-muted-foreground">
-              Press Enter to send, Shift+Enter for new line
-            </p>
+            <div className="flex flex-col">
+              <p className="text-xs text-muted-foreground">
+                Press Enter to send, Shift+Enter for new line
+              </p>
+              {/* ADDED: Guest draft indicator */}
+              {isGuest && guestDraft && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-blue-500 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Draft auto-saved locally
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInput('');
+                      clearGuestDraft();
+                    }}
+                    className="text-xs text-red-500 hover:text-red-700"
+                  >
+                    Clear draft
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <div className="flex space-x-2">
               <Button
                 variant="outline"
