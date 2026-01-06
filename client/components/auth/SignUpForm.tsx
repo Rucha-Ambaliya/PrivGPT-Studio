@@ -32,6 +32,15 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { format } from "date-fns"
+import { CalendarIcon } from "lucide-react"
+
 const formSchema = z
   .object({
     email: z
@@ -194,25 +203,58 @@ export function SignUpForm() {
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <FormField
                 control={form.control}
                 name="dob"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col justify-end">
                     <FormLabel>Date of Birth</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
+
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                          >
+                            {field.value
+                              ? format(new Date(field.value), "dd-MM-yyyy")
+                              : "dd-mm-yyyy"}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) =>
+                            field.onChange(
+                              date ? format(date, "yyyy-MM-dd") : ""
+                            )
+                          }
+
+                          captionLayout="dropdown"
+                          startMonth={new Date(1900, 0)}
+                          endMonth={new Date()}
+                          disabled={(date) => date > new Date()}
+                          autoFocus  
+                        />
+                      </PopoverContent>
+                    </Popover>
+
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="phone"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col justify-end">
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
                       <Input type="tel" placeholder="123-456-7890" {...field} />
