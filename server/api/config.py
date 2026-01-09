@@ -10,3 +10,22 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your_gemini_api_key")
     SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")
     MAX_MESSAGES_PER_SESSION = int(os.getenv("MAX_MESSAGES_PER_SESSION", 10))
+    
+    # File Upload Security Settings
+    MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 10 * 1024 * 1024))  # 10MB default
+    MAX_CONTENT_LENGTH = MAX_FILE_SIZE  # Flask's max request size
+    
+    # MIME type validation mapping
+    ALLOWED_MIME_TYPES = {
+        "pdf": ["application/pdf"],
+        "png": ["image/png"],
+        "jpg": ["image/jpeg"],
+        "jpeg": ["image/jpeg"],
+        "gif": ["image/gif"],
+        "mp4": ["video/mp4"],
+        "mp3": ["audio/mpeg", "audio/mp3"]
+    }
+    
+    # Rate limiting settings (per minute)
+    FILE_UPLOAD_RATE_LIMIT = "5 per minute"
+    CHAT_RATE_LIMIT = "30 per minute"

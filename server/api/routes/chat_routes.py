@@ -4,12 +4,22 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from api import gemini_model, mongo
 from bson import ObjectId
-from api.utils.file_utils import allowed_file, extract_text_from_pdf_bytes
+from api.utils.file_utils import (
+    allowed_file, 
+    extract_text_from_pdf_bytes, 
+    comprehensive_file_validation,
+    sanitize_filename
+)
 import json
 import google.generativeai as genai
 from api.config import Config
 import jwt
 from functools import wraps
+from collections import defaultdict
+from time import time
+
+from collections import defaultdict
+from time import time
 
 def validate_user(req):
     """
@@ -30,6 +40,55 @@ def validate_user(req):
         return data['user_id']
     except:
         return None
+
+
+# Simple in-memory rate limiting (for production, use Redis or similar)
+rate_limit_storage = defaultdict(list)
+
+def rate_limit(limit_string):
+    """
+    Simple rate limiting decorator.
+    
+    Args:
+    limit_string (str): Rate limit in format "X per minute" (e.g., "5 per minute")
+    
+    Returns:
+    decorator function
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Parse limit string
+            parts = limit_string.split()
+            max_requests = int(parts[0])
+            window = 60  # 1 minute in seconds
+            
+            # Get client identifier (IP address or user_id if authenticated)
+            user_id = validate_user(request)
+            client_id = user_id if user_id else request.remote_addr
+            
+            # Get current timestamp
+            now = time()
+            
+            # Clean old entries
+            rate_limit_storage[client_id] = [
+                timestamp for timestamp in rate_limit_storage[client_id]
+                if now - timestamp < window
+            ]
+            
+            # Check if limit exceeded
+            if len(rate_limit_storage[client_id]) >= max_requests:
+                return jsonify({
+                    "error": f"Rate limit exceeded. Maximum {max_requests} requests per minute allowed.",
+                    "retry_after": int(window - (now - rate_limit_storage[client_id][0]))
+                }), 429
+            
+            # Add current request timestamp
+            rate_limit_storage[client_id].append(now)
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
     
 def has_reached_message_limit(session_id):
     """
@@ -120,6 +179,7 @@ chat_bp = Blueprint('chat_bp', __name__)
 
 
 @chat_bp.route("/chat", methods=["POST"])
+@rate_limit(Config.CHAT_RATE_LIMIT)
 def chat():
     """
     Handles user chat requests, processes messages, optional file input,
@@ -195,16 +255,26 @@ def chat():
         # ====== File Handling (optional) ======
         uploaded_file = request.files.get("uploaded_file")
         if uploaded_file:
-            if not allowed_file(uploaded_file.filename):
-                return jsonify({"error": "Unsupported file type"}), 400
-            if uploaded_file.filename == "":
-                return jsonify({"error": "Empty file"}), 400
-
-            file_bytes = uploaded_file.read()
-            file_ext = uploaded_file.filename.rsplit(".", 1)[-1].lower()
-
+            # Comprehensive file validation
+            validation_result = comprehensive_file_validation(uploaded_file, uploaded_file.filename)
+            
+            if not validation_result["valid"]:
+                return jsonify({
+                    "error": validation_result["error"],
+                    "details": "File upload validation failed"
+                }), 400
+            
+            # Use validated data
+            file_bytes = validation_result["file_bytes"]
+            sanitized_filename = validation_result["sanitized_filename"]
+            file_ext = sanitized_filename.rsplit(".", 1)[-1].lower()
+            
+            # Check model compatibility
             if model_type == "local":
-                return jsonify({"error": "Selected local model does not support files"}), 400
+                return jsonify({
+                    "error": "Selected local model does not support file uploads",
+                    "suggestion": "Please switch to a cloud model (Gemini) for file processing"
+                }), 400
             else:
                 # Preprocess file for Gemini
                 if file_ext == "pdf":
@@ -340,6 +410,7 @@ def chat():
 
 
 @chat_bp.route("/chat/stream", methods=["POST"])
+@rate_limit(Config.CHAT_RATE_LIMIT)
 def chat_stream():
     try:
         # Validate user

@@ -14,12 +14,25 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
     app.config.from_object(Config)
+    
+    # Set maximum content length for file uploads
+    app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
+    
     mongo.init_app(app)
     bcrypt.init_app(app)
 
     @app.route("/")
     def index():
         return "Welcome to the PrivGPT-Studio Backend!"
+    
+    # Error handler for file too large
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        max_size_mb = Config.MAX_FILE_SIZE / (1024 * 1024)
+        return jsonify({
+            "error": f"File too large. Maximum allowed size is {max_size_mb:.1f}MB",
+            "max_size_bytes": Config.MAX_FILE_SIZE
+        }), 413
 
     # configure the gemini model
     genai.configure(api_key=Config.GEMINI_API_KEY)
