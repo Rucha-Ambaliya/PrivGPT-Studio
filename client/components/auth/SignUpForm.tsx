@@ -1,23 +1,27 @@
 "use client";
 
 import * as z from "zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { DayPicker } from "react-day-picker"
-import "react-day-picker/dist/style.css"
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
-import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns";
+import { CalendarIcon, Eye, EyeOff } from "lucide-react"; // Imported Eye icons
+
+import { DayPicker, DropdownProps } from "react-day-picker"
+import "react-day-picker/dist/style.css"
 
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,14 +50,15 @@ import { Input } from "@/components/ui/input";
 
 /* ---- helper functions ---- */
 function isoToDate(value?: string) {
-  return value ? new Date(value) : undefined
+  return value ? new Date(value) : undefined;
 }
 
 function dateToISO(date?: Date) {
-  return date ? format(date, "yyyy-MM-dd") : ""
+  return date ? format(date, "yyyy-MM-dd") : "";
 }
 
 /* -------- */
+// Updated Schema with Regex Validation
 const formSchema = z
   .object({
     email: z
@@ -62,7 +67,11 @@ const formSchema = z
       .email({ message: "Invalid email address." }),
     password: z
       .string()
-      .min(8, { message: "Password must be at least 8 characters." }),
+      .min(8, { message: "Password must be at least 8 characters." })
+      .regex(/[A-Z]/, { message: "Must contain at least one uppercase letter." })
+      .regex(/[a-z]/, { message: "Must contain at least one lowercase letter." })
+      .regex(/[0-9]/, { message: "Must contain at least one number." })
+      .regex(/[\W_]/, { message: "Must contain at least one special character." }),
     confirmPassword: z.string(),
     username: z.string().optional(),
     gender: z.enum(["male", "female", "other"]).optional().or(z.literal("")),
@@ -71,15 +80,49 @@ const formSchema = z
       .string()
       .regex(/^[1-9]\d{9}$/, {
         message: "Phone number must be a valid 10-digit number",
-      }).optional().or(z.literal("")),
+      })
+      .optional()
+      .or(z.literal("")),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match.",
     path: ["confirmPassword"],
   });
 
+const CalendarDropdown = (props: DropdownProps) => {
+  const { value, onChange, children } = props;
+  const options = React.Children.toArray(children) as React.ReactElement<React.OptionHTMLAttributes<HTMLOptionElement>>[];
+
+  const handleChange = (newValue: string) => {
+    const changeEvent = {
+      target: { value: newValue },
+    } as React.ChangeEvent<HTMLSelectElement>;
+    onChange?.(changeEvent);
+  };
+
+  return (
+    <Select value={value?.toString()} onValueChange={handleChange}>
+      <SelectTrigger className="pr-1.5 focus:ring-0">
+        <SelectValue>{options.find(o => o.props.value === value)?.props.children}</SelectValue>
+      </SelectTrigger>
+      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
+        {options.map((option) => (
+          <SelectItem key={option.props.value as string} value={option.props.value as string}>
+            {option.props.children}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
 export function SignUpForm() {
   const router = useRouter();
+  
+  // State for toggling password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -95,7 +138,8 @@ export function SignUpForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000";
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000";
       const response = await fetch(`${backendUrl}/api/register`, {
         method: "POST",
         headers: {
@@ -149,6 +193,8 @@ export function SignUpForm() {
                 </FormItem>
               )}
             />
+            
+            {/* Password Field with Toggle */}
             <FormField
               control={form.control}
               name="password"
@@ -156,12 +202,35 @@ export function SignUpForm() {
                 <FormItem>
                   <FormLabel>Password *</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">
+                          {showPassword ? "Hide password" : "Show password"}
+                        </span>
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Confirm Password Field with Toggle */}
             <FormField
               control={form.control}
               name="confirmPassword"
@@ -169,7 +238,30 @@ export function SignUpForm() {
                 <FormItem>
                   <FormLabel>Confirm Password *</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">
+                          {showConfirmPassword
+                            ? "Hide password"
+                            : "Show password"}
+                        </span>
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -252,6 +344,9 @@ export function SignUpForm() {
                           toYear={new Date().getFullYear()}
                           captionLayout="dropdown"
                           disabled={{ after: new Date() }}
+                          components={{
+                            Dropdown: CalendarDropdown,
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -268,7 +363,11 @@ export function SignUpForm() {
                   <FormItem className="flex flex-col justify-end">
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input type="tel" placeholder="123-456-7890" {...field} />
+                      <Input
+                        type="tel"
+                        placeholder="123-456-7890"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
