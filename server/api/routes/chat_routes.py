@@ -114,7 +114,89 @@ def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, u
         "latency": 0
     })
 
-
+def categorize_error(error, model_type="unknown"):
+    """
+    Categorizes errors and returns appropriate error response.
+    Returns: (error_message, http_status_code, error_type)
+    """
+    error_str = str(error).lower()
+    
+    # Network connectivity issues
+    if "connection refused" in error_str or "connectionreseterror" in error_str:
+        return {
+            "error": "Unable to connect to AI service. Please check if the local AI server (Ollama) is running.",
+            "error_type": "network_connection",
+            "suggestion": "Start Ollama server or check your internet connection.",
+            "retryable": True
+        }, 503
+    
+    if "timeout" in error_str or "read timeout" in error_str:
+        return {
+            "error": "Request timed out. The AI service is taking too long to respond.",
+            "error_type": "timeout",
+            "suggestion": "Try again or switch to a different model.",
+            "retryable": True
+        }, 504
+    
+    if "network" in error_str or "unreachable" in error_str:
+        return {
+            "error": "Network connectivity issue. Please check your internet connection.",
+            "error_type": "network_error",
+            "suggestion": "Check your network connection and try again.",
+            "retryable": True
+        }, 503
+    
+    # Authentication/Authorization issues
+    if "unauthorized" in error_str or "invalid api key" in error_str or "authentication" in error_str:
+        return {
+            "error": "Authentication failed. Please check your API key configuration.",
+            "error_type": "auth_error",
+            "suggestion": "Verify your API keys in the configuration.",
+            "retryable": False
+        }, 401
+    
+    # Rate limiting
+    if "rate limit" in error_str or "quota exceeded" in error_str:
+        return {
+            "error": "API rate limit exceeded. Please wait before making more requests.",
+            "error_type": "rate_limit",
+            "suggestion": "Wait a few minutes and try again, or switch to a different model.",
+            "retryable": True
+        }, 429
+    
+    # Model/service availability
+    if "model not found" in error_str or "model unavailable" in error_str:
+        return {
+            "error": f"The selected {model_type} model is not available.",
+            "error_type": "model_unavailable",
+            "suggestion": "Choose a different model from the available options.",
+            "retryable": False
+        }, 400
+    
+    if "service unavailable" in error_str or "server error" in error_str:
+        return {
+            "error": "The AI service is temporarily unavailable.",
+            "error_type": "service_unavailable",
+            "suggestion": "Try again later or use a different model.",
+            "retryable": True
+        }, 503
+    
+    # Generic server errors
+    if "internal server error" in error_str or "500" in error_str:
+        return {
+            "error": "Internal server error occurred.",
+            "error_type": "server_error",
+            "suggestion": "Please try again. If the problem persists, contact support.",
+            "retryable": True
+        }, 500
+    
+    # Default fallback
+    return {
+        "error": f"An unexpected error occurred: {str(error)}",
+        "error_type": "unknown_error",
+        "suggestion": "Please try again or contact support if the issue persists.",
+        "retryable": True
+    }, 500
 
 chat_bp = Blueprint('chat_bp', __name__)
 
@@ -253,28 +335,9 @@ def chat():
                 latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
                 bot_reply = response.json().get("response", "No reply.")
             except Exception as e:
-                # Fallback to gemini if available & requested
-                try:
-                    if gemini_model:
-                        fallback_used = True
-                        model_type = "cloud"
-                        model_name = "gemini"
-                        latency_ms = datetime.now()
-                        # Use model with system instruction if provided
-                        if system_prompt:
-                            model_with_system = genai.GenerativeModel(
-                                "models/gemini-2.5-flash",
-                                system_instruction=system_prompt
-                            )
-                            response = model_with_system.generate_content(combined_input, generation_config=generation_config)
-                        else:
-                            response = gemini_model.generate_content(combined_input, generation_config=generation_config)
-                        latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
-                        bot_reply = response.text or f"Local model failed, fallback used: {str(e)}"
-                    else:
-                        bot_reply = f"Local model error (no fallback): {str(e)}"
-                except Exception as inner_e:
-                    bot_reply = f"Local & fallback error: {str(e)} | Fallback: {str(inner_e)}"
+                # Categorize the error
+                error_response, status_code = categorize_error(e, "local")
+                return jsonify(error_response), status_code
         else:
             try:
                 if model_name == "gemini":
@@ -292,7 +355,8 @@ def chat():
                     latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
                     bot_reply = response.text or "No Reply"
             except Exception as e:
-                bot_reply = f"Cloud model error: {str(e)}"
+                error_response, status_code = categorize_error(e, "cloud")
+                return jsonify(error_response), status_code
 
         # ====== Message Format ======
         messages = [
@@ -478,45 +542,12 @@ def chat_stream():
                                 except GeneratorExit:
                                     break
                     except Exception as e:
-                        # Fallback to gemini streaming
-                        if gemini_model:
-                            fallback_msg = f"[Local model failed, switching to gemini: {str(e)}]\n"
-                            bot_reply += fallback_msg
-                            yield f"data: {json.dumps({'type': 'chunk', 'text': fallback_msg})}\n\n"
-                            try:
-                                # Use model with system instruction if provided
-                                if system_prompt:
-                                    model_with_system = genai.GenerativeModel(
-                                        "models/gemini-2.5-flash",
-                                        system_instruction=system_prompt
-                                    )
-                                    response = model_with_system.generate_content(
-                                        combined_input,
-                                        generation_config=generation_config,
-                                        stream=True
-                                    )
-                                else:
-                                    response = gemini_model.generate_content(
-                                        combined_input,
-                                        generation_config=generation_config,
-                                        stream=True
-                                    )
-                                for chunk in response:
-                                    try:
-                                        chunk_text = chunk.text if chunk.text else ""
-                                        if chunk_text:
-                                            bot_reply += chunk_text
-                                            yield f"data: {json.dumps({'type': 'chunk', 'text': chunk_text})}\n\n"
-                                    except GeneratorExit:
-                                        break
-                            except Exception as ge:
-                                err_txt = f"[Fallback gemini error: {str(ge)}]"
-                                bot_reply += err_txt
-                                yield f"data: {json.dumps({'type': 'error', 'message': err_txt})}\n\n"
-                        else:
-                            err_txt = f"[Local model error and no fallback: {str(e)}]"
-                            bot_reply += err_txt
-                            yield f"data: {json.dumps({'type': 'error', 'message': err_txt})}\n\n"
+                        # Categorize the error
+                        error_info, _ = categorize_error(e, "local")
+                        # For streaming, send error event
+                        err_txt = error_info["error"]
+                        bot_reply += err_txt
+                        yield f"data: {json.dumps({'type': 'error', 'message': err_txt, 'error_type': error_info['error_type'], 'suggestion': error_info['suggestion'], 'retryable': error_info['retryable']})}\n\n"
                                 
                 else:  # Cloud model (Gemini)
                     if model_name == "gemini":
@@ -550,9 +581,10 @@ def chat_stream():
                                 break
                     
             except Exception as e:
-                error_msg = f"Error: {str(e)}"
+                error_info, _ = categorize_error(e, model_type)
+                error_msg = error_info["error"]
                 bot_reply = error_msg
-                yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'message': error_msg, 'error_type': error_info['error_type'], 'suggestion': error_info['suggestion'], 'retryable': error_info['retryable']})}\n\n"
             
             # Calculate latency
             end_time = datetime.now()

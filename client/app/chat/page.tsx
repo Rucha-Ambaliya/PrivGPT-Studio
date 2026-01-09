@@ -545,6 +545,20 @@ export default function ChatPage() {
   // [NEW] Add this state
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Error handling states
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    suggestion: string;
+    retryable: boolean;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    suggestion: "",
+    retryable: false,
+  });
   // Text-to-Speech (Web Speech API)
   const [speechSupported, setSpeechSupported] = useState<boolean>(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -1105,11 +1119,8 @@ export default function ChatPage() {
         }
 
         if (!response.ok) {
-          throw new Error("Failed to fetch AI response");
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch AI response");
+          const errorData = await response.json();
+          throw new Error(JSON.stringify(errorData));
         }
 
         const data = await response.json();
@@ -1162,9 +1173,29 @@ export default function ChatPage() {
         setMessages((prev) => [...prev, assistantMessage]);
         setIsTyping(false);
         setLatency(data.latency.toString());
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to receive response from AI", error);
         setIsTyping(false);
+
+        try {
+          const errorData = JSON.parse(error.message);
+          setErrorDialog({
+            open: true,
+            title: "API Error",
+            message: errorData.error || "An unexpected error occurred",
+            suggestion: errorData.suggestion || "Please try again",
+            retryable: errorData.retryable !== false,
+          });
+        } catch {
+          // Fallback for non-JSON errors
+          setErrorDialog({
+            open: true,
+            title: "Connection Error",
+            message: "Failed to connect to the AI service",
+            suggestion: "Please check your connection and try again",
+            retryable: true,
+          });
+        }
       }
       return;
     }
@@ -1285,6 +1316,16 @@ export default function ChatPage() {
                         setIsLimitReached(true);
                         toast.error(data.message);
                         // Stop the stream
+                        stopGeneration();
+                    } else {
+                        // Enhanced error handling
+                        setErrorDialog({
+                          open: true,
+                          title: "Streaming Error",
+                          message: data.message || "An error occurred during streaming",
+                          suggestion: data.suggestion || "Please try again",
+                          retryable: data.retryable !== false,
+                        });
                         stopGeneration();
                     }
                     streamedContent = data.message;
@@ -3557,6 +3598,37 @@ export default function ChatPage() {
             }}>
               Save Changes
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog(prev => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{errorDialog.title}</DialogTitle>
+            <DialogDescription>
+              {errorDialog.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              <strong>Suggestion:</strong> {errorDialog.suggestion}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorDialog(prev => ({ ...prev, open: false }))}>
+              Close
+            </Button>
+            {errorDialog.retryable && (
+              <Button onClick={() => {
+                setErrorDialog(prev => ({ ...prev, open: false }));
+                // Retry the last message
+                handleSend();
+              }}>
+                Retry
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
