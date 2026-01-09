@@ -1,9 +1,16 @@
 import fitz
-import magic
 import os
 import re
 from werkzeug.utils import secure_filename
 from api.config import Config
+
+# Try to import magic, but make it optional
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except (ImportError, OSError):
+    MAGIC_AVAILABLE = False
+    print("Warning: python-magic not available. MIME type validation will be skipped.")
 
 # Allowed image extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'mp4', 'pdf', 'mp3'}
@@ -63,7 +70,8 @@ def validate_file_size(file_size):
 
 def validate_mime_type(file_bytes, filename):
     """
-    Validates file MIME type using python-magic (libmagic).
+    Validates file MIME type using python-magic (libmagic) if available.
+    Falls back to extension-only validation if magic is not available.
     
     Args:
     file_bytes (bytes): File content
@@ -72,16 +80,20 @@ def validate_mime_type(file_bytes, filename):
     Returns:
     tuple: (bool, str) - (is_valid, error_message)
     """
+    # Get file extension
+    if '.' not in filename:
+        return False, "File has no extension"
+    
+    file_ext = filename.rsplit('.', 1)[1].lower()
+    
+    if file_ext not in Config.ALLOWED_EXTENSIONS:
+        return False, f"File extension '.{file_ext}' is not allowed"
+    
+    # If magic is not available, skip MIME type validation
+    if not MAGIC_AVAILABLE:
+        return True, ""
+    
     try:
-        # Get file extension
-        if '.' not in filename:
-            return False, "File has no extension"
-        
-        file_ext = filename.rsplit('.', 1)[1].lower()
-        
-        if file_ext not in Config.ALLOWED_EXTENSIONS:
-            return False, f"File extension '.{file_ext}' is not allowed"
-        
         # Detect actual MIME type from file content
         mime = magic.Magic(mime=True)
         detected_mime = mime.from_buffer(file_bytes)
@@ -95,7 +107,7 @@ def validate_mime_type(file_bytes, filename):
         return True, ""
     
     except Exception as e:
-        # If python-magic is not available, fall back to extension check only
+        # If MIME type detection fails, fall back to extension check only
         print(f"MIME type validation warning: {str(e)}")
         return True, ""  # Allow if magic library fails
 
