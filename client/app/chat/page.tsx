@@ -581,6 +581,7 @@ export default function ChatPage() {
   const [stopSequence, setStopSequence] = useState("");
   const [seed, setSeed] = useState<number | "">(""); // Empty string means random seed
   const [systemPrompt, setSystemPrompt] = useState(""); // System prompt for model behavior
+  const [searchQuery, setSearchQuery] = useState(""); // Search query for filtering messages
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
