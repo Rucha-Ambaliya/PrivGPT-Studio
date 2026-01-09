@@ -1,12 +1,14 @@
 "use client";
 
 import * as z from "zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +41,10 @@ export function SignInForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const { login } = useAuth();
+  
+  // State for toggling password visibility
+  const [showPassword, setShowPassword] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,7 +55,8 @@ export function SignInForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000";
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000";
       const response = await fetch(`${backendUrl}/api/login`, {
         method: "POST",
         headers: {
@@ -100,6 +107,8 @@ export function SignInForm() {
                 </FormItem>
               )}
             />
+            
+            {/* Password Field with Toggle */}
             <FormField
               control={form.control}
               name="password"
@@ -107,12 +116,34 @@ export function SignInForm() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        <span className="sr-only">
+                          {showPassword ? "Hide password" : "Show password"}
+                        </span>
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
             <Button type="submit" className="w-full">
               Sign in
             </Button>

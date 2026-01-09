@@ -48,6 +48,7 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -88,6 +89,7 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -187,8 +189,10 @@ body {
 
 /* Cards / Boxes */
 .home-page .group-hover-card {
-  border: 1.5px solid rgba(0, 0, 0, 0.15); /* visible thin border for light theme */
-  border-radius: 12px; /* rounded corners */
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  /* visible thin border for light theme */
+  border-radius: 12px;
+  /* rounded corners */
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.3s ease;
   will-change: transform;
   background-color: inherit;
@@ -196,7 +200,8 @@ body {
 
 /* Dark mode border */
 .dark .home-page .group-hover-card {
-  border: 1.5px solid rgba(255, 255, 255, 0.15); /* visible thin border for dark theme */
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  /* visible thin border for dark theme */
 }
 
 .home-page .group-hover-card:hover {
@@ -205,8 +210,9 @@ body {
 }
 
 /* Stats boxes & steps */
-.home-page .grid > div {
-  border: 1.5px solid rgba(0, 0, 0, 0.1); /* visible thin border for light theme */
+.home-page .grid>div {
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  /* visible thin border for light theme */
   border-radius: 12px;
   padding: 1rem;
   transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.3s ease;
@@ -214,11 +220,19 @@ body {
 }
 
 /* Dark mode for stats / steps */
-.dark .home-page .grid > div {
+.dark .home-page .grid>div {
   border: 1.5px solid rgba(255, 255, 255, 0.1);
 }
 
-.home-page .grid > div:hover {
+.home-page .grid>div:hover {
   transform: scale(1.03) translateY(-5px);
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Date hover effect: Black text */
+.dark .rdp-day:hover:not(.rdp-day_outside) {
+  color: black !important;
+  background-color: hsl(var(--accent));
+  font-weight: bold;
 }
