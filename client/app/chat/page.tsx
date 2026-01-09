@@ -11,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import ErrorBoundary from "@/components/chat/ErrorBoundary";
+import { MessageSkeleton, TypingIndicator, ChatSessionSkeleton, ModelListSkeleton } from "@/components/chat/LoadingStates";
+import { ConnectionStatus } from "@/components/chat/ConnectionStatus";
+import { ErrorDisplay, MessageError } from "@/components/chat/ErrorDisplay";
+import { fetchWithRetry, isRetryableError } from "@/lib/retry-utils";
 import {
   Dialog,
   DialogContent,
@@ -545,6 +550,12 @@ export default function ChatPage() {
   // [NEW] Add this state
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Error handling and loading states
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [messageError, setMessageError] = useState<{ id: string; error: string } | null>(null);
   // Text-to-Speech (Web Speech API)
   const [speechSupported, setSpeechSupported] = useState<boolean>(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -788,9 +799,21 @@ export default function ChatPage() {
 
   useEffect(() => {
     const fetchModels = async () => {
+      setModelsLoading(true);
+      setModelsError(null);
+      
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/models`
+        const response = await fetchWithRetry(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/models`,
+          { timeout: 10000 },
+          {
+            maxRetries: 3,
+            shouldRetry: isRetryableError,
+            onRetry: (error, attempt) => {
+              console.log(`Retrying models fetch (attempt ${attempt}/3):`, error);
+              toast.info(`Retrying connection... (${attempt}/3)`);
+            },
+          }
         );
         const data = await response.json();
         const local: string[] = data.local_models || [];
@@ -842,6 +865,11 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error("Failed to fetch models:", error);
+        const errorMsg = error instanceof Error ? error.message : "Unable to load models. Please check your connection.";
+        setModelsError(errorMsg);
+        toast.error(errorMsg);
+      } finally {
+        setModelsLoading(false);
       }
     };
     fetchModels();
@@ -871,6 +899,9 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchChatSessionHistory = async () => {
       if (isLoading) return; // Wait for auth to initialize
+
+      setSessionsLoading(true);
+      setSessionsError(null);
 
       try {
         // CRITICAL FIX: Logged-in users fetch from backend, guests use localStorage
@@ -961,9 +992,13 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error("Failed to fetch session history:", error);
+        const errorMsg = error instanceof Error ? error.message : "Unable to load chat history";
+        setSessionsError(errorMsg);
         setSessionId(welcomeSession.id);
         setMessages([welcomeMessage]);
         setChatSessions([]);
+      } finally {
+        setSessionsLoading(false);
       }
     };
 
@@ -1164,6 +1199,9 @@ export default function ChatPage() {
         setLatency(data.latency.toString());
       } catch (error) {
         console.error("Failed to receive response from AI", error);
+        const errorMsg = error instanceof Error ? error.message : "Failed to get response from AI";
+        setMessageError({ id: Date.now().toString(), error: errorMsg });
+        toast.error(errorMsg);
         setIsTyping(false);
       }
       return;
