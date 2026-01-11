@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Mail, Lock, Cpu, Cloud, Loader2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Lock, Cpu, Cloud, Loader2, Edit2, Save, X } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -16,12 +16,17 @@ import { toast } from "sonner";
 export default function SettingsPage() {
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  
   const [profile, setProfile] = useState<{ username: string; email: string } | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({ username: "" });
+  
   const [models, setModels] = useState<{ local_models: string[]; cloud_models: string[] }>({
     local_models: [],
     cloud_models: [],
   });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !token) {
@@ -34,7 +39,6 @@ export default function SettingsPage() {
       if (!token) return;
       
       try {
-        // Fetch Profile
         const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -42,9 +46,9 @@ export default function SettingsPage() {
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setProfile(profileData);
+          setFormData({ username: profileData.username || "" });
         }
 
-        // Fetch Models
         const modelsRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/models`);
         if (modelsRes.ok) {
           const modelsData = await modelsRes.json();
@@ -61,6 +65,42 @@ export default function SettingsPage() {
     fetchData();
   }, [token]);
 
+  const handleSave = async () => {
+    if (!token) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        toast.success("Profile updated successfully");
+        setProfile(prev => prev ? { ...prev, ...formData } : null);
+        setIsEditing(false);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.message || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Update error", error);
+      toast.error("An error occurred while updating profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    if (profile) {
+      setFormData({ username: profile.username });
+    }
+    setIsEditing(false);
+  };
+
   if (authLoading || (loading && token)) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -72,7 +112,6 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-4xl space-y-8">
-        {/* Header */}
         <div className="flex items-center space-x-4">
           <Link href="/chat">
             <Button variant="ghost" size="icon">
@@ -86,25 +125,42 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {/* Profile Section */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile Information
-              </CardTitle>
-              <CardDescription>Your personal account details</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Profile Information
+                </CardTitle>
+                <CardDescription>Your personal account details</CardDescription>
+              </div>
+              {!isEditing ? (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={saving}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button variant="default" size="sm" onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  </Button>
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <div className="relative">
                   <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
-                    value={profile?.username || ""}
-                    disabled
-                    className="pl-9 bg-muted"
+                    value={isEditing ? formData.username : profile?.username || ""}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    disabled={!isEditing}
+                    className={`pl-9 ${!isEditing ? "bg-muted" : "bg-background"}`}
                   />
                 </div>
               </div>
@@ -120,6 +176,11 @@ export default function SettingsPage() {
                     className="pl-9 bg-muted"
                   />
                 </div>
+                {isEditing && (
+                  <p className="text-xs text-muted-foreground">
+                    Email cannot be changed directly.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -141,7 +202,6 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Models Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -152,7 +212,6 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               
-              {/* Local Models */}
               <div className="space-y-3">
                 <h3 className="text-sm font-medium flex items-center gap-2">
                   <Cpu className="h-4 w-4 text-green-500" />
@@ -173,7 +232,6 @@ export default function SettingsPage() {
 
               <Separator />
 
-              {/* Cloud Models */}
               <div className="space-y-3">
                 <h3 className="text-sm font-medium flex items-center gap-2">
                   <Cloud className="h-4 w-4 text-blue-500" />
