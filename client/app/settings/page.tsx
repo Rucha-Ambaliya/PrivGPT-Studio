@@ -35,7 +35,7 @@ export default function SettingsPage() {
       
       try {
         // Fetch Profile
-        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profile`, {
+        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         

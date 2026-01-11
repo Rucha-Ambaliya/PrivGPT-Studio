@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from api import mongo, bcrypt
 import jwt
 import datetime
+from bson import ObjectId
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -70,3 +71,29 @@ def login():
     }, current_app.config['SECRET_KEY'], algorithm='HS256')
     
     return jsonify({'token': token, 'message': 'Login successful'}), 200
+
+@auth_bp.route('/api/profile', methods=['GET'])
+def get_profile():
+    token = None
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization']
+        if auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+    
+    if not token:
+        return jsonify({'message': 'Token is missing'}), 401
+        
+    try:
+        data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = data['user_id']
+        user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+        
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+            
+        return jsonify({
+            'username': user.get('username'),
+            'email': user.get('email'),
+        }), 200
+    except Exception as e:
+        return jsonify({'message': 'Invalid token', 'error': str(e)}), 401
