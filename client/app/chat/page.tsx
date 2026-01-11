@@ -32,7 +32,7 @@ import {
   Settings,
   Info,
   MessageSquare,
-  Zap,
+  User,
   Home,
   Globe,
   Cpu,
@@ -2613,6 +2613,20 @@ export default function ChatPage() {
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
+            </Button>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/settings">
+                <User className="w-4 h-4 mr-2" />
+                Profile & Models
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => setConfigureModelModal(true)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Chat Parameters
             </Button>
             <Button variant="ghost" className="w-full justify-start">
               <svg
