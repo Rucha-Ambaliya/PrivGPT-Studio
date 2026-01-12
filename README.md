@@ -50,7 +50,8 @@ https://github.com/user-attachments/assets/fcaacd82-20ee-4cb0-9510-b5734b502810
 
 ## 💡 Why It’s Needed
 
-AI tools are everywhere — but most send your data to cloud servers you can’t control.  
+AI tools are everywhere — but most of them send your data to the cloud servers that you can’t control.  
+
 **Startups, researchers, and creators need AI that’s private, flexible, and powerful.**
 
 👉 **PrivGPT Studio solves this by combining local and cloud models in one workspace, with:**  
@@ -101,22 +102,23 @@ AI tools are everywhere — but most send your data to cloud servers you can’t
 ## 🖥️ Getting Started
 
 Before you begin, make sure you have the following installed on your system: 
-- **Git** 
-- **Node.js** (v18+ recommended)  
-- **Python** (3.9 or above)  
-- **pip** (Python package manager)    
-- (Optional) **Ollama** installed locally if you want to use local models.
 
-### 1. Fork this repository.
+ 1. **Git** 
+ 2. **Node.js** (v18+ recommended)  
+ 3. **Python** (3.9 or above)  
+ 4. **pip** (Python package manager)    
+ 5. (Optional) **Ollama** installed locally if you want to use local models.
 
-### 2. Clone the repository
+### STEP 1. Fork this repository.
+
+### STEP 2. Clone the repository
 
 ```bash
 git clone https://github.com/<your-github-username>/PrivGPT-Studio.git
 cd PrivGPT-Studio
 ```
 
-### 3. Set up the client (Next.js frontend)
+### STEP 3. Set up the client (Next.js frontend)
 
 ```bash
 cd client
@@ -136,7 +138,7 @@ npm run dev
 # Runs on http://localhost:3000
 ```
 
-### 4. Set up the server (Flask backend)
+### STEP 4. Set up the server (Flask backend)
 
 ```bash
 cd server
@@ -156,7 +158,7 @@ python app.py
 # Runs on http://localhost:5000
 ```
 
-### 5. (Optional) Start Ollama locally
+### STEP 5. (Optional) Start Ollama locally
 
 ```bash
 ollama serve
@@ -203,6 +205,7 @@ privgpt-studio/
 ## 🤝 Contributing
 
 Contributions are welcome! 🎉  
+
 Please check our [Contributing Guidelines](.github/CONTRIBUTING.md) to learn about:
 - Our development process
 - How to propose bug fixes and improvements
@@ -211,7 +214,8 @@ Please check our [Contributing Guidelines](.github/CONTRIBUTING.md) to learn abo
 <h3 align="right"><a href="#top">⬆️</a></h3>
 
 ## 📜 Code of Conduct
-We are committed to creating a welcoming and inclusive environment for everyone. Please be respectful, inclusive, and considerate in all interactions.
+1. We are committed to creating a welcoming and inclusive environment for everyone.
+2. Please be respectful, inclusive, and considerate in all interactions.
 
 By participating in this project, you agree to follow our [Code of Conduct](./.github/CODE_OF_CONDUCT.md).
 
@@ -223,6 +227,7 @@ If you witness or experience unacceptable behavior, please report it privately v
 
 If you have other questions, need help, or want to start a discussion about **PrivGPT Studio**,  
 please join our [Discord Server](https://discord.gg/J9z5T52rkZ).  
+
 💡 We’d love to hear your ideas, feedback, and suggestions there!
 
 <h3 align="right"><a href="#top">⬆️</a></h3>
@@ -247,7 +252,8 @@ please join our [Discord Server](https://discord.gg/J9z5T52rkZ).
 <h3 align="right"><a href="#top">⬆️</a></h3>
 
 ## ⚖ License
-This project is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). Make sure to review and comply with the license terms.
+This project is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0).
+Make sure to review and comply with the license terms.
 
 ✔️ You may use, modify, and share the code only for **non‑commercial purposes**.  
 ✔️ You must include the following attribution in any copies or derivative works:  
