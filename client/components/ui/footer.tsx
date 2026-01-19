@@ -13,7 +13,7 @@ export default function Footer() {
     <footer className="border-t py-12 bg-background px-4">
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          
+
           {/* Logo + Description */}
           <div className="md:col-span-4">
             <Link href="/" className="flex items-center">
@@ -99,6 +99,11 @@ export default function Footer() {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link href="/contact" className="hover:text-foreground">
+                  Contact Us
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -106,7 +111,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <h3 className="font-semibold mb-4">Connect</h3>
             <div className="flex space-x-5 text-muted-foreground">
-              
+
               {/* GitHub */}
               <a
                 href="https://github.com/Rucha-Ambaliya/PrivGPT-Studio"
@@ -129,10 +134,10 @@ export default function Footer() {
                 <AiOutlineDiscord className="w-7 h-8 -m-1" />
               </a>
 
-              {/* Email */}
+              {/* Contact */}
               <Link
-                href="/"
-                aria-label="Email"
+                href="/contact"
+                aria-label="Contact Us"
                 className="hover:text-foreground transition"
               >
                 <Mail className="w-6 h-6" />

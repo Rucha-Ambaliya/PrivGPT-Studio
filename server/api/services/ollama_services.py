@@ -13,3 +13,22 @@ def get_available_models():
         return sorted(m['name'] for m in res.json().get("models", []))
     except:
         return []
+
+def get_model_details(model_name):
+    """
+    Fetches detailed information for a specific local model from Ollama.
+
+    Args:
+    model_name (str): The name of the model to inspect.
+
+    Returns:
+    dict: The JSON response from Ollama's /api/show endpoint, or None if failed.
+    """
+    try:
+        res = requests.post("http://localhost:11434/api/show", json={"name": model_name}, timeout=5)
+        if res.status_code == 200:
+            return res.json()
+        return None
+    except Exception as e:
+        print(f"Error fetching details for {model_name}: {e}")
+        return None

@@ -34,6 +34,7 @@ labels: bug
 # Checklist
 <!-- Please delete the options that are not relevant to you. -->
 - [ ] I am a ECWoC'26 contributor
+- [ ] I am a DSCWoC'26 contributor
 
 
 # Additional context 

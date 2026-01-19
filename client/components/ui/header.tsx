@@ -50,18 +50,39 @@ export default function header() {
             >
               Home
             </Link>
-            <Link 
+            <Link
               href="/about"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               About Us
             </Link>
-            <Link 
+            <Link
               href="/pricing"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Pricing
             </Link>
+            <Link
+              href="/contact"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Contact
+            </Link>
+            {token && (
+              <Link
+                href="/dashboard"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Dashboard
+              </Link>
+            )}
+
+            {!token && (
+              <Link href="/sign-in">
+                <Button>Sign In</Button>
+              </Link>
+            )}
+
             <Link href={token ? "/chat" : "/sign-in?redirect=/chat"}>
               <Button variant="outline">Try Chat</Button>
             </Link>
@@ -114,6 +135,45 @@ export default function header() {
                     </Button>
                   </Link>
                 </SheetClose>
+                <SheetClose asChild>
+                  <Link href="/contact">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={closeMobileMenu}
+                    >
+                      Contact
+                    </Button>
+                  </Link>
+                </SheetClose>
+                {token && (
+                  <SheetClose asChild>
+                    <Link href="/dashboard">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={closeMobileMenu}
+                      >
+                        Dashboard
+                      </Button>
+                    </Link>
+                  </SheetClose>
+                )}
+
+                {!token && (
+                  <SheetClose asChild>
+                    <Link href="/sign-in">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={closeMobileMenu}
+                      >
+                        Sign In
+                      </Button>
+                    </Link>
+                  </SheetClose>
+                )}
+
                 <SheetClose asChild>
                   <Link href={token ? "/chat" : "/sign-in?redirect=/chat"}>
                     <Button

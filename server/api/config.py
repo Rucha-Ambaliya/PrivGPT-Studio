@@ -10,3 +10,4 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your_gemini_api_key")
     SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")
     MAX_MESSAGES_PER_SESSION = int(os.getenv("MAX_MESSAGES_PER_SESSION", 10))
+    CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "support@privgpt-studio.com")

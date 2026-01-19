@@ -7,7 +7,7 @@ import { Zap, FileText, Clock, Mail } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Head from "next/head";
-import Layout from "@/components/layout";
+
 
 export default function TermsOfService() {
   return (
@@ -69,7 +69,7 @@ export default function TermsOfService() {
         <link rel="canonical" href="https://privgpt-studio.vercel.app/terms" />
       </Head>
       
-      <Layout>
+    
 
       {/* Hero Section */}
       <section className="py-12 px-4 bg-muted/50">
@@ -231,7 +231,7 @@ export default function TermsOfService() {
         </div>
       </section>
 
-      </Layout>
+
     </div>
   );
 }

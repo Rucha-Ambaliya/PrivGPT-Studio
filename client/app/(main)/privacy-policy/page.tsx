@@ -17,7 +17,6 @@ import {
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Head from "next/head";
-import Layout from "@/components/layout";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -79,7 +78,7 @@ export default function PrivacyPolicyPage() {
         />
       </Head>
       
-      <Layout>
+
 
       {/* Quick Overview */}
       <section className="py-8 px-4">
@@ -575,7 +574,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </section>
 
-      </Layout>
+
     </div>
   );
 }

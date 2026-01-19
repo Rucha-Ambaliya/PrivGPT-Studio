@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from api.services.ollama_services import get_available_models
+from api.services.ollama_services import get_available_models, get_model_details
 
 model_bp=Blueprint('model_bp', __name__)
 
@@ -18,6 +18,44 @@ def models():
         "local_models": local_models,
         "cloud_models": cloud_models,
     })
+
+@model_bp.route("/model_info", methods=["POST"])
+def model_info():
+    """
+    Returns detailed information about a specific model.
+    Expects JSON: { "model_name": "name", "model_type": "local"|"cloud" }
+    """
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    model_name = data.get("model_name")
+    model_type = data.get("model_type", "local")
+
+    if not model_name:
+        return jsonify({"error": "Model name is required"}), 400
+
+    if model_type == "cloud":
+        return jsonify({
+            "license": "Proprietary",
+            "modelfile": "N/A",
+            "parameters": "Managed by Provider",
+            "template": "Standard Chat Interface",
+            "details": {
+                "parent_model": "",
+                "format": "Cloud API",
+                "family": "Gemini",
+                "families": ["Gemini"],
+                "parameter_size": "Unknown",
+                "quantization_level": "None"
+            }
+        })
+
+    details = get_model_details(model_name)
+    if details:
+        return jsonify(details)
+    
+    return jsonify({"error": "Failed to fetch model info"}), 500
 
 select_model_bp = Blueprint('select_model_bp', __name__)
 @select_model_bp.route("/select_model", methods=["POST"])
