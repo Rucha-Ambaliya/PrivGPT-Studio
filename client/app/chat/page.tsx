@@ -57,6 +57,10 @@ import {
   Square,
   ChevronLeft,
   RefreshCw,
+  Lock,
+  Unlock,
+  Timer,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -101,6 +105,11 @@ type ChatSession = {
   id: string;
   sessionName: string;
   lastMessage: string;
+  privacy_settings?: {
+    is_locked: boolean;
+    auto_delete_after: string | null;
+    expires_at: string | null;
+  };
 };
 
 interface UploadedFile {
@@ -571,6 +580,10 @@ export default function ChatPage() {
   const [stopSequence, setStopSequence] = useState("");
   const [seed, setSeed] = useState<number | "">(""); // Empty string means random seed
   const [systemPrompt, setSystemPrompt] = useState(""); // System prompt for model behavior
+  const [privacyControlsModal, setPrivacyControlsModal] = useState(false);
+  const [selectedSessionForPrivacy, setSelectedSessionForPrivacy] = useState<string | null>(null);
+  const [privacyIsLocked, setPrivacyIsLocked] = useState(false);
+  const [privacyAutoDelete, setPrivacyAutoDelete] = useState<string>("");
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
@@ -2373,6 +2386,77 @@ export default function ChatPage() {
     setEditedName("");
   };
 
+  const handlePrivacySettings = (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    const currentSettings = session?.privacy_settings || { is_locked: false, auto_delete_after: null, expires_at: null };
+    
+    setSelectedSessionForPrivacy(sessionId);
+    setPrivacyIsLocked(currentSettings.is_locked);
+    setPrivacyAutoDelete(currentSettings.auto_delete_after || "");
+    setPrivacyControlsModal(true);
+  };
+
+  const updatePrivacySettings = async (sessionId: string, settings: { is_locked: boolean; auto_delete_after: string | null }) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/privacy/${sessionId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(settings),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update privacy settings");
+      }
+
+      const data = await response.json();
+      
+      // Update local state
+      setChatSessions((prev) =>
+        prev.map((session) =>
+          session.id === sessionId
+            ? { ...session, privacy_settings: data.privacy_settings }
+            : session
+        )
+      );
+
+      toast.success("Privacy settings updated successfully!");
+      setPrivacyControlsModal(false);
+      setSelectedSessionForPrivacy(null);
+    } catch (error: any) {
+      console.error("Error updating privacy settings:", error);
+      toast.error(error.message || "Failed to update privacy settings");
+    }
+  };
+
+  const getTimeRemaining = (expiresAt: string | null) => {
+    if (!expiresAt) return null;
+    
+    const now = new Date();
+    const expiry = new Date(expiresAt);
+    const diff = expiry.getTime() - now.getTime();
+    
+    if (diff <= 0) return "Expired";
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+      return `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
+
   useEffect(() => {
     if (Array.isArray(chatSessions)) {
       const suggestions = chatSessions
@@ -2478,11 +2562,26 @@ export default function ChatPage() {
               </CollapsibleTrigger>
 
               <CollapsibleContent className="space-y-1 mt-2">
-                {chatSessions.map((session, index) => (
+                {chatSessions.map((session, index) => {
+                  const privacySettings = session.privacy_settings || { is_locked: false, auto_delete_after: null, expires_at: null };
+                  const timeRemaining = getTimeRemaining(privacySettings.expires_at);
+                  const isExpired = timeRemaining === "Expired";
+                  
+                  return (
                   <div
                     key={index}
-                    className="group flex items-center justify-between px-2 py-1 rounded-md hover:bg-muted/50 cursor-pointer"
+                    className={`group flex items-center justify-between px-2 py-1 rounded-md hover:bg-muted/50 cursor-pointer ${
+                      privacySettings.is_locked ? "opacity-75" : ""
+                    } ${isExpired ? "opacity-50" : ""}`}
                     onClick={() => {
+                      if (privacySettings.is_locked) {
+                        toast.error("This conversation is locked");
+                        return;
+                      }
+                      if (isExpired) {
+                        toast.error("This conversation has expired");
+                        return;
+                      }
                       handleCurrentChatSession(session.id);
                       // Close sidebar on mobile after selecting a chat
                       if (window.innerWidth < 1024) {
@@ -2491,40 +2590,60 @@ export default function ChatPage() {
                     }}
                   >
                     <div className="flex-1 min-w-0">
-                      {editingSessionId === session.id ? (
-                        <input
-                          ref={inputRef}
-                          type="text"
-                          value={editedName}
-                          onChange={(e) => setEditedName(e.target.value)}
-                          onBlur={(e) => {
-                            setTimeout(() => {
-                              if (document.activeElement !== inputRef.current) {
+                      <div className="flex items-center gap-1">
+                        {privacySettings.is_locked && (
+                          <Lock className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
+                        )}
+                        {privacySettings.auto_delete_after && !isExpired && (
+                          <Timer className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                        )}
+                        {editingSessionId === session.id ? (
+                          <input
+                            ref={inputRef}
+                            type="text"
+                            value={editedName}
+                            onChange={(e) => setEditedName(e.target.value)}
+                            onBlur={(e) => {
+                              setTimeout(() => {
+                                if (document.activeElement !== inputRef.current) {
+                                  saveEditedName(session.id);
+                                }
+                              }, 100);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
                                 saveEditedName(session.id);
+                              } else if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelEdit();
                               }
-                            }, 100);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              saveEditedName(session.id);
-                            } else if (e.key === "Escape") {
-                              e.preventDefault();
-                              cancelEdit();
-                            }
-                          }}
-                          autoFocus
-                          className="text-sm font-medium bg-transparent border-b border-black outline-none"
-                        />
-                      ) : (
-                        <p className="text-sm font-medium truncate cursor-pointer">
-                          {session.sessionName}
-                        </p>
-                      )}
+                            }}
+                            autoFocus
+                            className="text-sm font-medium bg-transparent border-b border-black outline-none flex-1"
+                          />
+                        ) : (
+                          <p className="text-sm font-medium truncate cursor-pointer flex-1">
+                            {session.sessionName}
+                          </p>
+                        )}
+                      </div>
 
-                      <p className="text-xs text-muted-foreground truncate">
-                        {session.lastMessage}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground truncate flex-1">
+                          {session.lastMessage}
+                        </p>
+                        {timeRemaining && !isExpired && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">
+                            {timeRemaining}
+                          </span>
+                        )}
+                        {isExpired && (
+                          <span className="text-xs text-red-600 dark:text-red-400 ml-1">
+                            Expired
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger
@@ -2547,6 +2666,12 @@ export default function ChatPage() {
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          onClick={() => handlePrivacySettings(session.id)}
+                        >
+                          <Shield className="w-4 h-4 mr-2" />
+                          Privacy Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => setDeleteChatSessionModal(true)}
                         >
@@ -2556,7 +2681,7 @@ export default function ChatPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                ))}
+                )})}
               </CollapsibleContent>
             </Collapsible>
             <Button
@@ -3305,6 +3430,90 @@ export default function ChatPage() {
               onClick={() => handleDeleteChatSession(sessionId)}
             >
               Delete Chat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Controls Modal */}
+      <Dialog open={privacyControlsModal} onOpenChange={setPrivacyControlsModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Privacy Settings</DialogTitle>
+            <DialogDescription>
+              Configure privacy and auto-delete settings for this conversation
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Lock className="w-4 h-4" />
+                <span className="text-sm font-medium">Lock Conversation</span>
+              </div>
+              <Switch
+                checked={privacyIsLocked}
+                onCheckedChange={setPrivacyIsLocked}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Locked conversations cannot be accessed or modified
+            </p>
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Timer className="w-4 h-4" />
+                <span className="text-sm font-medium">Auto-Delete After</span>
+              </div>
+              <Select value={privacyAutoDelete} onValueChange={setPrivacyAutoDelete}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Never" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Never</SelectItem>
+                  <SelectItem value="1h">1 Hour</SelectItem>
+                  <SelectItem value="24h">24 Hours</SelectItem>
+                  <SelectItem value="7d">7 Days</SelectItem>
+                  <SelectItem value="30d">30 Days</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Conversation will be automatically deleted after the selected time
+              </p>
+            </div>
+            
+            {(() => {
+              const session = chatSessions.find(s => s.id === selectedSessionForPrivacy);
+              const currentSettings = session?.privacy_settings;
+              return currentSettings?.expires_at ? (
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Current expiry: {getTimeRemaining(currentSettings.expires_at) || "Expired"}
+                  </p>
+                </div>
+              ) : null;
+            })()}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPrivacyControlsModal(false);
+                setSelectedSessionForPrivacy(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedSessionForPrivacy) {
+                  updatePrivacySettings(selectedSessionForPrivacy, {
+                    is_locked: privacyIsLocked,
+                    auto_delete_after: privacyAutoDelete || null
+                  });
+                }
+              }}
+            >
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
