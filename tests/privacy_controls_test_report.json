@@ -1,0 +1,33 @@
+{
+  "start_time": "2026-01-20T10:29:32.631153",
+  "tests": {
+    "backend": {
+      "returncode": 2,
+      "stdout": "============================= test session starts =============================\nplatform win32 -- Python 3.13.8, pytest-7.4.2, pluggy-1.6.0 -- C:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\ncachedir: .pytest_cache\nrootdir: c:\\Users\\DELL\\OneDrive\\Documents\\GitHub\\PrivGPT-Studio\\tests\nplugins: anyio-4.11.0, langsmith-0.4.8, asyncio-0.21.1, cov-4.1.0\nasyncio: mode=Mode.STRICT\ncollecting ... collected 0 items / 1 error\n\n=================================== ERRORS ====================================\n______________ ERROR collecting test_privacy_controls_backend.py ______________\nImportError while importing test module 'c:\\Users\\DELL\\OneDrive\\Documents\\GitHub\\PrivGPT-Studio\\tests\\test_privacy_controls_backend.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\importlib\\__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\ntest_privacy_controls_backend.py:17: in <module>\n    from api.routes.chat_routes import chat_bp, update_privacy_settings, has_reached_message_limit\n..\\server\\api\\__init__.py:3: in <module>\n    from flask_pymongo import PyMongo\nC:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\flask_pymongo\\__init__.py:34: in <module>\n    import pymongo\nC:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pymongo\\__init__.py:91: in <module>\n    from pymongo.asynchronous.mongo_client import AsyncMongoClient\nC:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pymongo\\asynchronous\\mongo_client.py:64: in <module>\n    from pymongo import _csot, common, helpers_shared, periodic_executor\nC:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pymongo\\common.py:40: in <module>\n    from bson import SON\nE   ImportError: cannot import name 'SON' from 'bson' (C:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\bson\\__init__.py)\n=========================== short test summary info ===========================\nERROR test_privacy_controls_backend.py\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n============================== 1 error in 0.71s ===============================\n",
+      "stderr": "",
+      "passed": false
+    },
+    "frontend": {
+      "returncode": 0,
+      "passed": true,
+      "skipped": true
+    },
+    "integration": {
+      "returncode": 0,
+      "passed": true,
+      "skipped": true
+    },
+    "performance": {
+      "duration": 0.002084970474243164,
+      "operations_per_second": 479623.09891366493,
+      "passed": true
+    }
+  },
+  "summary": {
+    "total_tests": 4,
+    "passed_tests": 3,
+    "failed_tests": 1,
+    "success_rate": 75.0
+  },
+  "end_time": "2026-01-20T10:29:54.901749"
+}

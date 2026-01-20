@@ -150,13 +150,8 @@ def chat():
         # Check if session is locked (only for existing sessions)
         if session_id != "1" and ObjectId.is_valid(session_id):
             session = mongo.db.sessions.find_one({"_id": ObjectId(session_id)})
-            if session:
-                privacy_settings = session.get("privacy_settings", {})
-                if privacy_settings.get("is_locked", False):
-                    return jsonify({
-                        "error": "This conversation is locked and cannot be modified",
-                        "locked": True
-                    }), 403
+            if session and session.get("privacy_settings", {}).get("is_locked", False):
+                return jsonify({"error": "This conversation is locked", "locked": True}), 403
 
         if has_reached_message_limit(session_id):
             return jsonify({
@@ -376,13 +371,10 @@ def chat_stream():
         # Check if session is locked (only for existing sessions)
         if session_id != "1" and ObjectId.is_valid(session_id):
             session = mongo.db.sessions.find_one({"_id": ObjectId(session_id)})
-            if session:
-                privacy_settings = session.get("privacy_settings", {})
-                if privacy_settings.get("is_locked", False):
-                    def error_generator():
-                        err_msg = "This conversation is locked and cannot be modified"
-                        yield f"data: {json.dumps({'type': 'error', 'message': err_msg, 'locked': True})}\n\n"
-                    return Response(error_generator(), mimetype='text/event-stream')
+            if session and session.get("privacy_settings", {}).get("is_locked", False):
+                def error_generator():
+                    yield f"data: {json.dumps({'type': 'error', 'message': 'This conversation is locked', 'locked': True})}\n\n"
+                return Response(error_generator(), mimetype='text/event-stream')
         
         if has_reached_message_limit(session_id):
             def error_generator():
@@ -839,24 +831,14 @@ def delete_chat(session_id):
 
 @chat_bp.route("/chat/privacy/<session_id>", methods=["POST"])
 def update_privacy_settings(session_id):
-    """
-    Updates privacy settings for a chat session.
-    
-    Args:
-    session_id (str): MongoDB ObjectId of the session.
-    
-    Returns:
-    JSON: Status message indicating success or failure.
-    """
     try:
         if not ObjectId.is_valid(session_id):
             return jsonify({"error": "Invalid session_id"}), 400
             
         data = request.json or {}
         is_locked = data.get("is_locked", False)
-        auto_delete_after = data.get("auto_delete_after")  # "1h", "24h", "7d", or None
+        auto_delete_after = data.get("auto_delete_after")
         
-        # Calculate expiry time if auto_delete_after is set
         expires_at = None
         if auto_delete_after:
             now = datetime.now()
@@ -869,7 +851,6 @@ def update_privacy_settings(session_id):
             elif auto_delete_after == "30d":
                 expires_at = now + timedelta(days=30)
         
-        # Update privacy settings
         result = mongo.db.sessions.update_one(
             {"_id": ObjectId(session_id)},
             {"$set": {
@@ -898,36 +879,16 @@ def update_privacy_settings(session_id):
 
 @chat_bp.route("/chat/cleanup-expired", methods=["POST"])
 def cleanup_expired_chats():
-    """
-    Deletes expired chat sessions based on their auto-delete settings.
-    This endpoint should be called periodically (e.g., by a cron job).
-    
-    Returns:
-    JSON: Number of deleted sessions.
-    """
     try:
         now = datetime.now()
-        
-        # Find and delete expired sessions
         result = mongo.db.sessions.delete_many({
             "privacy_settings.expires_at": {"$lt": now}
         })
         
-        # Remove deleted sessions from user chat lists
-        if result.deleted_count > 0:
-            # This is a bit inefficient but necessary since we don't track which sessions were deleted
-            # In a production system, you might want to collect the session IDs before deletion
-            mongo.db.users.update_many(
-                {},
-                {"$pull": {"chat_sessions": {"$in": []}}}
-            )
-        
         return jsonify({
             "status": "success",
-            "message": f"Cleaned up {result.deleted_count} expired sessions",
             "deleted_count": result.deleted_count
         })
         
     except Exception as e:
-        print("Error in /chat/cleanup-expired:", e)
         return jsonify({"error": str(e)}), 500
