@@ -57,28 +57,26 @@ def has_reached_message_limit(session_id):
     return user_msg_count >= limit
 
 def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, uploaded_file, file_bytes, user_id=None):
-    """
-    Saves conversation with file info and returns response JSON.
-    
-    Returns:
-    JSON: Chat response and metadata.
-    """
+    file_info = None
+    if uploaded_file and file_bytes:
+        file_info = {
+            "name": uploaded_file.filename,
+            "type": uploaded_file.mimetype,
+            "size": len(file_bytes)
+        }
+        
     messages = [
         {
             "role": "user",
             "content": user_msg,
             "timestamp": datetime.now() - timedelta(seconds=10),
-            "uploaded_file": {
-                "name": uploaded_file.filename,
-                "type": uploaded_file.mimetype,
-                "size": len(file_bytes),
-            },
+            "uploaded_file": file_info
         },
         {
             "role": "bot",
             "content": bot_reply,
             "timestamp": datetime.now(),
-            "model_name": model_name,
+            "model_name": model_name
         }
     ]
 
