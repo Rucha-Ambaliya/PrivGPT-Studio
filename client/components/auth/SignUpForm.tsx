@@ -34,6 +34,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -137,9 +138,11 @@ export function SignUpForm() {
   // State for toggling password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState("Weak");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "onChange",
     defaultValues: {
       email: "",
       password: "",
@@ -150,6 +153,14 @@ export function SignUpForm() {
       phone: "",
     },
   });
+
+  const evaluatePasswordStrength = (password: string) => {
+    if (!password) return { label: "Weak", color: "text-red-500" };
+    const checks = [/[A-Z]/.test(password), /[a-z]/.test(password), /[0-9]/.test(password), /[\W_]/.test(password), password.length >= 8].filter(Boolean).length;
+    if (checks >= 5) return { label: "Strong", color: "text-emerald-600" };
+    if (checks >= 3) return { label: "Fair", color: "text-amber-600" };
+    return { label: "Weak", color: "text-red-500" };
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -213,36 +224,51 @@ export function SignUpForm() {
             <FormField
               control={form.control}
               name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password *</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        {...field}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                        <span className="sr-only">
-                          {showPassword ? "Hide password" : "Show password"}
-                        </span>
-                      </Button>
+              render={({ field }) => {
+                const strength = evaluatePasswordStrength(field.value || "");
+                setPasswordStrength(strength.label);
+                return (
+                  <FormItem>
+                    <FormLabel>Password *</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setPasswordStrength(evaluatePasswordStrength(e.target.value).label);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">
+                            {showPassword ? "Hide password" : "Show password"}
+                          </span>
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Use at least 8 characters with upper, lower, number, and a symbol.
+                    </FormDescription>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Password strength</span>
+                      <span className={strength.color}>{strength.label}</span>
                     </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             {/* Confirm Password Field with Toggle */}
@@ -388,6 +414,11 @@ export function SignUpForm() {
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/40 p-3 text-sm text-muted-foreground">
+              <p className="mb-2 font-medium text-foreground">Social sign-up</p>
+              <p>Google and GitHub sign-in will be available soon. You can still create an account with email.</p>
             </div>
 
             <Button type="submit" className="w-full mt-4">
