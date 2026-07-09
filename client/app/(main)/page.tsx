@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import ScrollToTop from "@/components/ui/scroll-to-top";
 import { useAuth } from "@/context/AuthContext";
+import { ArrowRight, Sparkles, ShieldCheck, Cpu } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -199,26 +200,55 @@ export default function HomePage() {
       `}</style>
 
       {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
-          <Badge variant="secondary" className="mb-4">
-            🚀 Now supporting local AI models
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            PrivGPT Studio
-          </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Experience the future of AI conversations with both cloud-powered
-            Gemini and privacy-focused local models
-          </p>
-          <Link href="/chat">
-            <Button size="lg" className="text-lg px-8 py-6">
-              Start for Free
-            </Button>
-          </Link>
-        </div>
-      </section>
 
+<section className="relative py-24 px-4 overflow-hidden">
+  <div className="container mx-auto max-w-5xl text-center">
+    <Badge
+      variant="secondary"
+      className="mb-6 px-4 py-1.5 text-sm rounded-full"
+    >
+      <Cpu className="mr-2 h-4 w-4" />
+      Now supporting local AI models
+    </Badge>
+
+    <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] mb-8 bg-gradient-to-r from-blue-500 via-violet-500 to-cyan-400 bg-clip-text text-transparent">
+      PrivGPT Studio
+    </h1>
+
+    <p className="text-lg md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-10">
+      Experience the future of AI conversations with{" "}
+      <span className="font-semibold text-foreground">Gemini</span> and
+      privacy-first{" "}
+      <span className="font-semibold text-foreground">local AI models</span>,
+      all in one powerful workspace.
+    </p>
+
+    <Link href="/chat">
+      <Button size="lg" className="h-14 px-8 text-lg group">
+        <Sparkles className="mr-2 h-5 w-5" />
+        Start for Free
+        <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+      </Button>
+    </Link>
+
+    <div className="mt-10 flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-green-500" />
+        Privacy First
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Cpu className="h-4 w-4 text-blue-500" />
+        Local & Cloud AI
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-violet-500" />
+        Free to Start
+      </div>
+    </div>
+  </div>
+</section>
       {/* Key Stats */}
       <section className="py-16 px-4 bg-muted/50">
         <div className="container mx-auto">
