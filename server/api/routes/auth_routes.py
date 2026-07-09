@@ -179,10 +179,15 @@ def update_profile():
 
         allowed_fields = ['username', 'gender', 'dob', 'phone']
         
+        allowed_fields = ['username', 'gender', 'dob', 'phone']
+        
         updates = {}
         for field in allowed_fields:
             if field in update_data:
-                updates[field] = update_data[field]
+                if isinstance(update_data[field], str):
+                    updates[field] = update_data[field]
+                else:
+                    return jsonify({'message': f'Invalid data type for {field}. Expected a string.'}), 400
         
         if not updates:
             return jsonify({'message': 'No valid fields to update'}), 400

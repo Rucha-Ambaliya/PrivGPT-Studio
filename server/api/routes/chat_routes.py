@@ -25,11 +25,11 @@ def validate_user(req):
     if not token:
         return None
         
-    try:
-        data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-        return data['user_id']
-    except:
-        return None
+    try: 
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            return data['user_id']
+    except Exception:
+            return None
     
 def has_reached_message_limit(session_id):
     """
