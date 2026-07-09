@@ -211,16 +211,15 @@ export default function HomePage() {
       Now supporting local AI models
     </Badge>
 
-    <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] mb-8 bg-gradient-to-r from-blue-500 via-violet-500 to-cyan-400 bg-clip-text text-transparent">
-      PrivGPT Studio
-    </h1>
+     <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            PrivGPT Studio
+          </h1>
 
-    <p className="text-lg md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-10">
+   <p className="text-lg md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-10">
       Experience the future of AI conversations with{" "}
-      <span className="font-semibold text-foreground">Gemini</span> and
-      privacy-first{" "}
-      <span className="font-semibold text-foreground">local AI models</span>,
-      all in one powerful workspace.
+      <span className="font-semibold text-foreground">privacy-first local AI models</span>{" "}
+      and <span className="font-semibold text-foreground">Gemini</span>, all in one
+      powerful workspace.
     </p>
 
     <Link href="/chat">
