@@ -215,6 +215,10 @@ export default function SettingsPage() {
               )}
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
+              <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/40 p-3 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Profile tips</p>
+                <p className="mt-1">You can update your public profile details anytime. Changes are saved when you tap the save button.</p>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
