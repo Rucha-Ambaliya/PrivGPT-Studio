@@ -306,10 +306,37 @@ def chat():
                 bot_reply = f"Cloud model error: {str(e)}"
 
         # ====== Message Format ======
+        file_info = None
+        if uploaded_file and file_bytes:
+
+            file_info = {
+
+                "name": uploaded_file.filename,
+                "type": uploaded_file.mimetype,
+                "size": len(file_bytes)
+            }
+        user_message = {
+        "role": "user", 
+        "content": user_msg, 
+        "timestamp": user_timestamp
+        }
+
+        if file_info:
+           
+           user_message["uploaded_file"] = file_info
+
         messages = [
-            {"role": "user", "content": user_msg, "timestamp": user_timestamp},
-            {"role": "bot", "content": bot_reply, "timestamp": datetime.now(), "model_name": model_name}
-        ]
+
+            user_message,
+
+            {
+
+                "role": "bot", 
+                "content": bot_reply, 
+                "timestamp": datetime.now(), 
+                "model_name": model_name
+    }
+]
 
         # save chat history to DB
         if session_id != "1":
