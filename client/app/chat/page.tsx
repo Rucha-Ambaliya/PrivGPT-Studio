@@ -1,7 +1,6 @@
 "use client";
 
-import type React from "react";
-
+import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,7 +110,32 @@ interface UploadedFile {
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+const applyHighlight = (children: React.ReactNode, searchQuery: string): React.ReactNode => {
+  const highlightText = (text: string): React.ReactNode => {
+    if (!searchQuery.trim()) return text;
+    const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === searchQuery.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-200 dark:bg-yellow-600 px-0.5 rounded">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
 
+  return React.Children.map(children, (child) => {
+    if (typeof child === 'string') return highlightText(child);
+    if (React.isValidElement(child)) {
+      return React.cloneElement(child as React.ReactElement, {
+        ...child.props,
+        children: applyHighlight(child.props.children, searchQuery),
+      });
+    }
+    return child;
+  });
+};
 export default function ChatPage() {
   const { darkMode } = useTheme();
   const { token, isLoading } = useAuth();
@@ -373,11 +397,11 @@ export default function ChatPage() {
                   className={`px-1.5 py-0.5 rounded text-sm font-mono ${
                     isUser
                       ? "bg-primary-foreground/10 text-primary-foreground"
-                      : "bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400"
+                      : "bg-gray-100 dark:bg-gray-800 text-foreground"
                   }`}
                   {...props}
                 >
-                  {highlightSearchTerms(String(children), searchQuery)}
+                  {applyHighlight(children, searchQuery)}
                 </code>
               ) : (
                 // Block code
@@ -417,7 +441,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </h1>
             ),
             h2: ({ children }) => (
@@ -428,7 +452,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </h2>
             ),
             h3: ({ children }) => (
@@ -439,7 +463,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </h3>
             ),
             // Lists
@@ -461,7 +485,7 @@ export default function ChatPage() {
                     : "text-gray-800 dark:text-gray-200"
                 }
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </li>
             ),
             // Paragraphs
@@ -473,7 +497,7 @@ export default function ChatPage() {
                     : "text-gray-800 dark:text-gray-200"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </p>
             ),
             // Blockquotes
@@ -485,7 +509,7 @@ export default function ChatPage() {
                     : "text-gray-600 dark:text-gray-400"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </blockquote>
             ),
             // Links
@@ -500,7 +524,7 @@ export default function ChatPage() {
                     : "text-blue-600 dark:text-blue-400 hover:underline"
                 }
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </a>
             ),
             // Tables
@@ -516,12 +540,12 @@ export default function ChatPage() {
             ),
             th: ({ children }) => (
               <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left font-semibold">
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </th>
             ),
             td: ({ children }) => (
               <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </td>
             ),
             // Horizontal rule
@@ -537,7 +561,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </strong>
             ),
             // Emphasis/Italic
@@ -549,7 +573,7 @@ export default function ChatPage() {
                     : "text-gray-800 dark:text-gray-200"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </em>
             ),
           }}
