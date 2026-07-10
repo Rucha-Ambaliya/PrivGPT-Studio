@@ -1,7 +1,6 @@
 "use client";
 
-import type React from "react";
-
+import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,12 +110,48 @@ interface UploadedFile {
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+const applyHighlight = (children: React.ReactNode, searchQuery: string): React.ReactNode => {
+  const highlightText = (text: string): React.ReactNode => {
+    if (!searchQuery.trim()) return text;
+    const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === searchQuery.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-200 dark:bg-yellow-600 px-0.5 rounded">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
 
+  return React.Children.map(children, (child) => {
+    if (typeof child === 'string') return highlightText(child);
+    if (React.isValidElement(child)) {
+      return React.cloneElement(child as React.ReactElement, {
+        ...child.props,
+        children: applyHighlight(child.props.children, searchQuery),
+      });
+    }
+    return child;
+  });
+};
 export default function ChatPage() {
   const { darkMode } = useTheme();
   const { token, isLoading } = useAuth();
   const router = useRouter();
-
+  const extractTextFromChildren = (children: React.ReactNode): string => {
+  if (typeof children === 'string' || typeof children === 'number') {
+    return String(children);
+  }
+  if (Array.isArray(children)) {
+    return children.map(extractTextFromChildren).join('');
+  }
+  if (React.isValidElement(children)) {
+    return extractTextFromChildren(children.props.children);
+  }
+  return '';
+  };
   // Loading dots animation component
   const LoadingDots = () => {
     const [dots, setDots] = useState(".");
@@ -349,65 +384,43 @@ export default function ChatPage() {
             code({ node, inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || "");
               const language = match ? match[1] : "";
+              const isInline = inline || !className || !String(children).includes("\n");
 
-              // Better inline detection - check multiple conditions
-              const isInline =
-                inline ||
-                !className ||
-                !String(children).includes("\n") ||
-                (String(children).trim().split("\n").length === 1 &&
-                  String(children).length < 100);
-
-              // Debug log to see what's happening (remove after testing)
-              console.log("Code rendering:", {
-                inline,
-                isInline,
-                className,
-                content: String(children),
-                hasNewlines: String(children).includes("\n"),
-              });
+              const rawText = extractTextFromChildren(children);
 
               return isInline ? (
-                // Inline code
                 <code
-                  className={`px-1.5 py-0.5 rounded text-sm font-mono ${
-                    isUser
-                      ? "bg-primary-foreground/10 text-primary-foreground"
-                      : "bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400"
-                  }`}
+                  className={`px-1.5 py-0.5 rounded text-sm font-mono bg-gray-100 dark:bg-gray-800`}
                   {...props}
-                >
-                  {highlightSearchTerms(String(children), searchQuery)}
+                  >
+                  {applyHighlight(children, searchQuery)}
                 </code>
               ) : (
-                // Block code
-                <div className="relative my-4">
-                  <div className="flex items-center justify-between bg-gray-800 text-gray-200 px-4 py-2 text-sm font-mono rounded-t-md">
-                    <span>{language || "code"}</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          String(children).replace(/\n$/, ""),
-                        );
-                        toast.success("Code copied to clipboard!");
-                      }}
-                      className="text-gray-400 hover:text-white text-xs"
+              <div className="relative my-4">
+                <div className="flex items-center justify-between bg-gray-800 text-gray-200 px-4 py-2 text-sm font-mono rounded-t-md">
+                  <span>{language || "code"}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(rawText.replace(/\n$/, ""));
+                      toast.success("Code copied!");
+                    }}
+                    className="text-gray-400 hover:text-white text-xs"
                     >
-                      Copy
-                    </button>
-                  </div>
-                  <SyntaxHighlighter
-                    style={oneDark as any}
-                    language={language}
-                    PreTag="div"
-                    className="!mt-0 !rounded-t-none"
-                    {...props}
-                  >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
+                    Copy
+                  </button>
                 </div>
-              );
-            },
+                <SyntaxHighlighter
+                style={oneDark as any}
+                language={language}
+                PreTag="div"
+                className="!mt-0 !rounded-t-none"
+                {...props}
+                >
+                {rawText.replace(/\n$/, "")}
+                </SyntaxHighlighter>
+              </div>
+            );
+          },
             // Headers
             h1: ({ children }) => (
               <h1
@@ -417,7 +430,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </h1>
             ),
             h2: ({ children }) => (
@@ -428,7 +441,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </h2>
             ),
             h3: ({ children }) => (
@@ -439,7 +452,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </h3>
             ),
             // Lists
@@ -461,7 +474,7 @@ export default function ChatPage() {
                     : "text-gray-800 dark:text-gray-200"
                 }
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </li>
             ),
             // Paragraphs
@@ -473,7 +486,7 @@ export default function ChatPage() {
                     : "text-gray-800 dark:text-gray-200"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </p>
             ),
             // Blockquotes
@@ -485,7 +498,7 @@ export default function ChatPage() {
                     : "text-gray-600 dark:text-gray-400"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </blockquote>
             ),
             // Links
@@ -500,7 +513,7 @@ export default function ChatPage() {
                     : "text-blue-600 dark:text-blue-400 hover:underline"
                 }
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </a>
             ),
             // Tables
@@ -516,12 +529,12 @@ export default function ChatPage() {
             ),
             th: ({ children }) => (
               <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left font-semibold">
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </th>
             ),
             td: ({ children }) => (
               <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </td>
             ),
             // Horizontal rule
@@ -537,7 +550,7 @@ export default function ChatPage() {
                     : "text-gray-900 dark:text-gray-100"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </strong>
             ),
             // Emphasis/Italic
@@ -549,7 +562,7 @@ export default function ChatPage() {
                     : "text-gray-800 dark:text-gray-200"
                 }`}
               >
-                {highlightSearchTerms(String(children), searchQuery)}
+                {applyHighlight(children, searchQuery)}
               </em>
             ),
           }}
