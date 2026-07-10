@@ -140,7 +140,18 @@ export default function ChatPage() {
   const { darkMode } = useTheme();
   const { token, isLoading } = useAuth();
   const router = useRouter();
-
+  const extractTextFromChildren = (children: React.ReactNode): string => {
+  if (typeof children === 'string' || typeof children === 'number') {
+    return String(children);
+  }
+  if (Array.isArray(children)) {
+    return children.map(extractTextFromChildren).join('');
+  }
+  if (React.isValidElement(children)) {
+    return extractTextFromChildren(children.props.children);
+  }
+  return '';
+  };
   // Loading dots animation component
   const LoadingDots = () => {
     const [dots, setDots] = useState(".");
@@ -373,65 +384,43 @@ export default function ChatPage() {
             code({ node, inline, className, children, ...props }: any) {
               const match = /language-(\w+)/.exec(className || "");
               const language = match ? match[1] : "";
+              const isInline = inline || !className || !String(children).includes("\n");
 
-              // Better inline detection - check multiple conditions
-              const isInline =
-                inline ||
-                !className ||
-                !String(children).includes("\n") ||
-                (String(children).trim().split("\n").length === 1 &&
-                  String(children).length < 100);
-
-              // Debug log to see what's happening (remove after testing)
-              console.log("Code rendering:", {
-                inline,
-                isInline,
-                className,
-                content: String(children),
-                hasNewlines: String(children).includes("\n"),
-              });
+              const rawText = extractTextFromChildren(children);
 
               return isInline ? (
-                // Inline code
                 <code
-                  className={`px-1.5 py-0.5 rounded text-sm font-mono ${
-                    isUser
-                      ? "bg-primary-foreground/10 text-primary-foreground"
-                      : "bg-gray-100 dark:bg-gray-800 text-foreground"
-                  }`}
+                  className={`px-1.5 py-0.5 rounded text-sm font-mono bg-gray-100 dark:bg-gray-800`}
                   {...props}
-                >
+                  >
                   {applyHighlight(children, searchQuery)}
                 </code>
               ) : (
-                // Block code
-                <div className="relative my-4">
-                  <div className="flex items-center justify-between bg-gray-800 text-gray-200 px-4 py-2 text-sm font-mono rounded-t-md">
-                    <span>{language || "code"}</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          String(children).replace(/\n$/, ""),
-                        );
-                        toast.success("Code copied to clipboard!");
-                      }}
-                      className="text-gray-400 hover:text-white text-xs"
+              <div className="relative my-4">
+                <div className="flex items-center justify-between bg-gray-800 text-gray-200 px-4 py-2 text-sm font-mono rounded-t-md">
+                  <span>{language || "code"}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(rawText.replace(/\n$/, ""));
+                      toast.success("Code copied!");
+                    }}
+                    className="text-gray-400 hover:text-white text-xs"
                     >
-                      Copy
-                    </button>
-                  </div>
-                  <SyntaxHighlighter
-                    style={oneDark as any}
-                    language={language}
-                    PreTag="div"
-                    className="!mt-0 !rounded-t-none"
-                    {...props}
-                  >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
+                    Copy
+                  </button>
                 </div>
-              );
-            },
+                <SyntaxHighlighter
+                style={oneDark as any}
+                language={language}
+                PreTag="div"
+                className="!mt-0 !rounded-t-none"
+                {...props}
+                >
+                {rawText.replace(/\n$/, "")}
+                </SyntaxHighlighter>
+              </div>
+            );
+          },
             // Headers
             h1: ({ children }) => (
               <h1
