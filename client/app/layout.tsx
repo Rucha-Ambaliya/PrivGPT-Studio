@@ -1,13 +1,14 @@
+
 import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import GoogleAuthProviderWrapper from "@/components/GoogleAuthProviderWrapper";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "PrivGPT Studio",
   description:
@@ -36,13 +37,15 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.className} bg-white dark:bg-gray-900 text-black dark:text-white transition-colors duration-300`}
       >
-        <ThemeProvider>
-          <AuthProvider>
-            {/* Your existing top navigation (with Try Chat + Sun icon) is inside children */}
-            <Toaster position="top-right" />
-            {children}
-          </AuthProvider>
-        </ThemeProvider>
+        <GoogleAuthProviderWrapper>
+          <ThemeProvider>
+            <AuthProvider>
+              {/* Your existing top navigation (with Try Chat + Sun icon) is inside children */}
+              <Toaster position="top-right" />
+              {children}
+            </AuthProvider>
+          </ThemeProvider>
+        </GoogleAuthProviderWrapper>
       </body>
     </html>
   );

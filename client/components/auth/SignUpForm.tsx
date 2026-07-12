@@ -1,11 +1,12 @@
 "use client";
-
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from "../../context/AuthContext";
 import * as z from "zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { DayPicker, DropdownProps } from "react-day-picker";
@@ -133,11 +134,12 @@ const CalendarDropdown = (props: DropdownProps) => {
  */
 export function SignUpForm() {
   const router = useRouter();
-  
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
   // State for toggling password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const { login } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -395,6 +397,53 @@ export function SignUpForm() {
             </Button>
           </form>
         </Form>
+        <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <GoogleLogin onSuccess={async (credentialResponse) => {
+              try {
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000";
+                const response = await fetch(`${backendUrl}/api/auth/google`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: credentialResponse.credential }),
+                });
+                if (!response.ok) {
+                  try {
+                      const errorData = await response.json();
+                      toast.error(errorData.message || "Google login failed");
+                      } 
+                  catch (e) {
+                      toast.error("Server error: " + response.statusText);
+                    }
+                  return;
+                }
+                const data = await response.json();
+
+                if (response.ok) {
+                  login(data.token);
+                  toast.success("Account created successfully with Google!");
+                  router.push(redirect || "/chat");
+                  }
+                else {
+                  toast.error(data.message || "Registration failed");
+                  }
+                } 
+              catch (error) {
+                toast.error("Something went wrong with Google registration.");
+              }
+            }}
+            onError={() => {
+              toast.error("Google login failed");
+            }}
+            useOneTap={false} 
+            />
         <div className="mt-4 text-sm text-center">
           Already have an account?{" "}
           <Link href="/sign-in" className="underline">

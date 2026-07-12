@@ -4,7 +4,8 @@ from flask_pymongo import PyMongo
 from flask_bcrypt import Bcrypt
 from .config import Config
 import google.generativeai as genai
-
+import os
+from dotenv import load_dotenv
 from api.plugins.manager import init_plugin_manager
 
 mongo = PyMongo()
@@ -15,10 +16,11 @@ plugin_manager = None
 def create_app():
     app = Flask(__name__)
     CORS(app)
+    load_dotenv()
     app.config.from_object(Config)
     mongo.init_app(app)
     bcrypt.init_app(app)
-    
+    app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
     # Initialize Plugins
     global plugin_manager
     plugin_manager = init_plugin_manager(app.config['PLUGINS_DIRS'], app.config['ENABLED_PLUGINS'])
