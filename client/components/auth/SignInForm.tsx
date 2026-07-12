@@ -21,12 +21,14 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const formSchema = z.object({
   email: z
@@ -58,6 +60,7 @@ export function SignInForm() {
   
   // State for toggling password visibility
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -158,6 +161,25 @@ export function SignInForm() {
               )}
             />
             
+            <div className="flex items-center justify-between gap-3">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Checkbox
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <span>Remember me</span>
+              </label>
+              <button
+                type="button"
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                onClick={() =>
+                  toast.info("Password reset is coming soon. Please use the contact page for support.")
+                }
+              >
+                Forgot password?
+              </button>
+            </div>
+
             <Button type="submit" className="w-full">
               Sign in
             </Button>

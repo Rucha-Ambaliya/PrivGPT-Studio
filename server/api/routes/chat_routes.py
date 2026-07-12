@@ -25,11 +25,11 @@ def validate_user(req):
     if not token:
         return None
         
-    try:
-        data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-        return data['user_id']
-    except:
-        return None
+    try: 
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            return data['user_id']
+    except Exception:
+            return None
     
 def has_reached_message_limit(session_id):
     """
@@ -57,28 +57,26 @@ def has_reached_message_limit(session_id):
     return user_msg_count >= limit
 
 def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, uploaded_file, file_bytes, user_id=None):
-    """
-    Saves conversation with file info and returns response JSON.
-    
-    Returns:
-    JSON: Chat response and metadata.
-    """
+    file_info = None
+    if uploaded_file and file_bytes:
+        file_info = {
+            "name": uploaded_file.filename,
+            "type": uploaded_file.mimetype,
+            "size": len(file_bytes)
+        }
+        
     messages = [
         {
             "role": "user",
             "content": user_msg,
             "timestamp": datetime.now() - timedelta(seconds=10),
-            "uploaded_file": {
-                "name": uploaded_file.filename,
-                "type": uploaded_file.mimetype,
-                "size": len(file_bytes),
-            },
+            "uploaded_file": file_info
         },
         {
             "role": "bot",
             "content": bot_reply,
             "timestamp": datetime.now(),
-            "model_name": model_name,
+            "model_name": model_name
         }
     ]
 
@@ -116,10 +114,14 @@ def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, u
 
 
 
+from api.middleware import rate_limit, validate_chat_request
+
 chat_bp = Blueprint('chat_bp', __name__)
 
 
 @chat_bp.route("/chat", methods=["POST"])
+@rate_limit(limit=20, per=60)
+@validate_chat_request
 def chat():
     """
     Handles user chat requests, processes messages, optional file input,
@@ -308,10 +310,37 @@ def chat():
                 bot_reply = f"Cloud model error: {str(e)}"
 
         # ====== Message Format ======
+        file_info = None
+        if uploaded_file and file_bytes:
+
+            file_info = {
+
+                "name": uploaded_file.filename,
+                "type": uploaded_file.mimetype,
+                "size": len(file_bytes)
+            }
+        user_message = {
+        "role": "user", 
+        "content": user_msg, 
+        "timestamp": user_timestamp
+        }
+
+        if file_info:
+           
+           user_message["uploaded_file"] = file_info
+
         messages = [
-            {"role": "user", "content": user_msg, "timestamp": user_timestamp},
-            {"role": "bot", "content": bot_reply, "timestamp": datetime.now(), "model_name": model_name}
-        ]
+
+            user_message,
+
+            {
+
+                "role": "bot", 
+                "content": bot_reply, 
+                "timestamp": datetime.now(), 
+                "model_name": model_name
+    }
+]
 
         # save chat history to DB
         if session_id != "1":
@@ -357,6 +386,8 @@ def chat():
 
 
 @chat_bp.route("/chat/stream", methods=["POST"])
+@rate_limit(limit=20, per=60)
+@validate_chat_request
 def chat_stream():
     try:
         # Validate user

@@ -33,8 +33,7 @@ Fixes #
 
 # Checklist
 <!-- Please delete the options that are not relevant to you. -->
-- [ ] I am a ECWoc'26 contributor
-- [ ] I am a DSCWoC'26 contributor
+- [ ] I am a ECSoC'26 contributor
 - [ ] My code follows the project’s style guidelines
 - [ ] I have added comments in areas that may be hard to understand
 - [ ] I have NOT included `package.json` or `package-lock.json` in this PR
