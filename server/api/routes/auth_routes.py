@@ -1,10 +1,57 @@
 from flask import Blueprint, request, jsonify, current_app
 from api import mongo, bcrypt
+import os
 import jwt
 import datetime
 from bson import ObjectId
-
+from google.oauth2 import id_token
+from google.auth.transport import requests
 auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/api/auth/google', methods=['POST'])
+def google_auth():
+    app_client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+    
+    data = request.get_json()
+    token = data.get("token")
+    
+    try:
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(), app_client_id)
+        
+        email = idinfo.get("email")
+        name = idinfo.get("name")
+        
+        if not email:
+            return jsonify({'message': 'Invalid token payload: Email missing'}), 400
+
+        user = mongo.db.users.find_one({'email': email})
+        
+        if not user:
+            new_user = {
+                'email': email,
+                'username': name or email.split('@')[0],
+                'password': None,          
+                'gender': None,
+                'dob': None,
+                'phone': None,
+                'chat_sessions': [],       
+                'created_at': datetime.datetime.utcnow()
+            }
+            result = mongo.db.users.insert_one(new_user)
+            user_id = str(result.inserted_id)
+        else:
+            user_id = str(user['_id'])
+        local_token = jwt.encode({
+            'user_id': user_id,
+            'email': email,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        }, current_app.config['SECRET_KEY'], algorithm='HS256')
+        return jsonify({'token': local_token, 'message': 'Login successful'}), 200
+
+    except ValueError as ve:
+        return jsonify({'message': 'Invalid token authentication signature', 'error': str(ve)}), 401
+    except Exception as e:
+        return jsonify({'message': 'Internal token verification failure', 'error': str(e)}), 401
 
 @auth_bp.route('/api/register', methods=['POST'])
 def register():
@@ -90,7 +137,7 @@ def login():
     
     user = mongo.db.users.find_one({'email': email})
     
-    if not user or not bcrypt.check_password_hash(user['password'], password):
+    if not user or not user.get('password') or not bcrypt.check_password_hash(user['password'], password):
         return jsonify({'message': 'Invalid email or password'}), 401
     
     # generate JWT
