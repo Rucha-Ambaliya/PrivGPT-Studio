@@ -114,10 +114,14 @@ def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, u
 
 
 
+from api.middleware import rate_limit, validate_chat_request
+
 chat_bp = Blueprint('chat_bp', __name__)
 
 
 @chat_bp.route("/chat", methods=["POST"])
+@rate_limit(limit=20, per=60)
+@validate_chat_request
 def chat():
     """
     Handles user chat requests, processes messages, optional file input,
@@ -382,6 +386,8 @@ def chat():
 
 
 @chat_bp.route("/chat/stream", methods=["POST"])
+@rate_limit(limit=20, per=60)
+@validate_chat_request
 def chat_stream():
     try:
         # Validate user
