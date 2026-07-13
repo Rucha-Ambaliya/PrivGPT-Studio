@@ -42,18 +42,27 @@ def has_reached_message_limit(session_id):
         
     limit = current_app.config.get("MAX_MESSAGES_PER_SESSION", 10)
     
-    # Optimization: Fetch only the message roles to minimize data transfer
-    session = mongo.db.sessions.find_one(
-        {"_id": ObjectId(session_id)},
-        {"messages.role": 1} 
-    )
+    # Optimization: Evaluate count via MongoDB aggregation instead of Python loop
+    pipeline = [
+        {"$match": {"_id": ObjectId(session_id)}},
+        {"$project": {
+            "user_msg_count": {
+                "$size": {
+                    "$filter": {
+                        "input": {"$ifNull": ["$messages", []]},
+                        "as": "m",
+                        "cond": {"$eq": ["$$m.role", "user"]}
+                    }
+                }
+            }
+        }}
+    ]
     
-    if not session:
+    result = list(mongo.db.sessions.aggregate(pipeline))
+    if not result:
         return False
         
-    # Count only user messages (prompts)
-    user_msg_count = sum(1 for m in session.get("messages", []) if m.get("role") == "user")
-    
+    user_msg_count = result[0].get("user_msg_count", 0)
     return user_msg_count >= limit
 
 def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, uploaded_file, file_bytes, user_id=None):
@@ -180,9 +189,11 @@ def chat():
             valid_ids = [ObjectId(m_id) for m_id in mention_session_ids if ObjectId.is_valid(m_id)]
             if valid_ids:
                 sessions = mongo.db.sessions.find({"_id": {"$in": valid_ids}})
-                for s in sessions:
-                    for m in s.get("messages", []):
-                        history_context += f"{m['role']}: {m['content']}\n"
+                # Optimization: List comprehension + join instead of O(N^2) string concatenation loop
+                history_context = "".join(
+                    f"{m['role']}: {m['content']}\n"
+                    for s in sessions for m in s.get("messages", [])
+                )
         # Handle uploaded file
         if history_context:
             combined_input = (
@@ -436,9 +447,11 @@ def chat_stream():
             valid_ids = [ObjectId(m_id) for m_id in mention_session_ids if ObjectId.is_valid(m_id)]
             if valid_ids:
                 sessions = mongo.db.sessions.find({"_id": {"$in": valid_ids}})
-                for s in sessions:
-                    for m in s.get("messages", []):
-                        history_context += f"{m['role']}: {m['content']}\n"
+                # Optimization: List comprehension + join instead of O(N^2) string concatenation loop
+                history_context = "".join(
+                    f"{m['role']}: {m['content']}\n"
+                    for s in sessions for m in s.get("messages", [])
+                )
         if history_context:
             combined_input = (
                 f"Here is some previous conversation context that you should consider:\n"

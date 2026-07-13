@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -654,6 +654,15 @@ export default function ChatPage() {
   const [stopSequence, setStopSequence] = useState("");
   const [seed, setSeed] = useState<number | "">(""); // Empty string means random seed
   const [systemPrompt, setSystemPrompt] = useState(""); // System prompt for model behavior
+
+  // Optimization: Memoize the search filter to bypass O(N) array traversals when not searching
+  const visibleMessages = useMemo(() => {
+    if (!searchQuery) return messages;
+    const lowerQuery = searchQuery.toLowerCase();
+    return messages.filter((message) =>
+      message.content.toLowerCase().includes(lowerQuery)
+    );
+  }, [messages, searchQuery]);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
@@ -3033,11 +3042,7 @@ export default function ChatPage() {
   dark:[&::-webkit-scrollbar-thumb]:bg-gray-600
   dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-500 p-4 space-y-4"
         >
-          {messages
-            .filter((message) =>
-              message.content.toLowerCase().includes(searchQuery.toLowerCase()),
-            )
-            .map((message) => (
+          {visibleMessages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${
