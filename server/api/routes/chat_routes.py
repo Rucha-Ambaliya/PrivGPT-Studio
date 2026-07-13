@@ -177,13 +177,12 @@ def chat():
         mention_session_ids = request.form.getlist("mention_session_ids[]")
         history_context = ""
         if mention_session_ids:
-            print(mention_session_ids)
-            for m_id in mention_session_ids:
-                if ObjectId.is_valid(m_id):
-                    s = mongo.db.sessions.find_one({"_id": ObjectId(m_id)})
-                    if s:
-                        for m in s.get("messages", []):
-                            history_context += f"{m['role']}: {m['content']}\n"
+            valid_ids = [ObjectId(m_id) for m_id in mention_session_ids if ObjectId.is_valid(m_id)]
+            if valid_ids:
+                sessions = mongo.db.sessions.find({"_id": {"$in": valid_ids}})
+                for s in sessions:
+                    for m in s.get("messages", []):
+                        history_context += f"{m['role']}: {m['content']}\n"
         # Handle uploaded file
         if history_context:
             combined_input = (
@@ -434,13 +433,12 @@ def chat_stream():
         mention_session_ids = request.form.getlist("mention_session_ids[]")
         history_context = ""
         if mention_session_ids:
-            print(mention_session_ids)
-            for m_id in mention_session_ids:
-                if ObjectId.is_valid(m_id):
-                    s = mongo.db.sessions.find_one({"_id": ObjectId(m_id)})
-                    if s:
-                        for m in s.get("messages", []):
-                            history_context += f"{m['role']}: {m['content']}\n"
+            valid_ids = [ObjectId(m_id) for m_id in mention_session_ids if ObjectId.is_valid(m_id)]
+            if valid_ids:
+                sessions = mongo.db.sessions.find({"_id": {"$in": valid_ids}})
+                for s in sessions:
+                    for m in s.get("messages", []):
+                        history_context += f"{m['role']}: {m['content']}\n"
         if history_context:
             combined_input = (
                 f"Here is some previous conversation context that you should consider:\n"
