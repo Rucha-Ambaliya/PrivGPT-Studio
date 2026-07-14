@@ -65,6 +65,20 @@ def has_reached_message_limit(session_id):
     user_msg_count = result[0].get("user_msg_count", 0)
     return user_msg_count >= limit
 
+def is_session_locked(session_id):
+    """
+    Checks if the session is locked.
+    Returns True if locked, False otherwise.
+    """
+    if session_id == "1" or not session_id or not ObjectId.is_valid(session_id):
+        return False
+        
+    session = mongo.db.sessions.find_one({"_id": ObjectId(session_id)})
+    if not session:
+        return False
+        
+    return session.get("locked", False)
+
 def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, uploaded_file, file_bytes, user_id=None):
     file_info = None
     if uploaded_file and file_bytes:
@@ -153,6 +167,12 @@ def chat():
             
         user_timestamp = datetime.now() - timedelta(seconds=10)
         session_id = request.form.get("session_id", "1")
+
+        if is_session_locked(session_id):
+            return jsonify({
+                "error": "This chat is locked and cannot receive new messages.",
+                "limit_reached": True 
+        }), 403
 
         if has_reached_message_limit(session_id):
             return jsonify({
@@ -407,6 +427,12 @@ def chat_stream():
         # Plugin: before_prompt
         if plugin_manager:
             user_msg = plugin_manager.before_prompt(user_msg)
+            
+        if is_session_locked(session_id):
+            def error_generator_locked():
+                err_msg = "This chat is locked and cannot receive new messages."
+                yield f"data: {json.dumps({'type': 'error', 'message': err_msg, 'limit_reached': True})}\n\n"
+            return Response(error_generator_locked(), mimetype='text/event-stream')
             
         if has_reached_message_limit(session_id):
             def error_generator():
@@ -716,6 +742,8 @@ def chat_history():
         session["_id"] = str(session["_id"])
         if "user_id" in session:
             session["user_id"] = str(session["user_id"])
+        if "expires_at" in session and hasattr(session["expires_at"], "isoformat"):
+            session["expires_at"] = session["expires_at"].isoformat()
             
         for msg in session.get("messages", []):
             if hasattr(msg["timestamp"], "isoformat"):
@@ -740,6 +768,9 @@ def get_session_messages(session_id):
         if not session:
             return jsonify({"error": "Session not found"}), 404
 
+        if "expires_at" in session and hasattr(session["expires_at"], "isoformat"):
+            session["expires_at"] = session["expires_at"].isoformat()
+
         # Convert timestamps to ISO format for JSON serialization
         for msg in session.get("messages", []):
             if "timestamp" in msg:
@@ -750,7 +781,9 @@ def get_session_messages(session_id):
         return jsonify({
             "session_id": str(session["_id"]),
             "messages": session["messages"],
-            "limit_reached": limit_reached
+            "limit_reached": limit_reached,
+            "locked": session.get("locked", False),
+            "expires_at": session.get("expires_at")
         })
 
     except Exception as e:
@@ -771,6 +804,9 @@ def rename_session():
 
     if not session_id or not new_name:
         return jsonify({"error": "Missing session_id or new_name"}), 400
+
+    if is_session_locked(session_id):
+        return jsonify({"error": "This chat is locked and cannot be renamed."}), 403
 
     try:
         result = mongo.db.sessions.update_one(
@@ -800,6 +836,9 @@ def clear():
 
     if not session_id:
         return jsonify({"error": "Missing session_id"}), 400
+
+    if is_session_locked(session_id):
+        return jsonify({"error": "This chat is locked and cannot be cleared."}), 403
 
     try:
         result = mongo.db.sessions.update_one(
@@ -850,4 +889,65 @@ def delete_chat(session_id):
         return jsonify({"status": "success", "message": "Chat deleted successfully"})
     except Exception as e:
         print("Error in /chat/delete:", e)
+        return jsonify({"error": str(e)}), 500
+
+@chat_bp.route("/chat/<session_id>/lock", methods=["POST"])
+def toggle_lock(session_id):
+    """
+    Toggles the locked status of a chat session.
+    """
+    data = request.get_json() or {}
+    locked = data.get("locked", True)
+    
+    if not ObjectId.is_valid(session_id):
+        return jsonify({"error": "Invalid session_id"}), 400
+        
+    try:
+        result = mongo.db.sessions.update_one(
+            {"_id": ObjectId(session_id)},
+            {"$set": {"locked": locked}}
+        )
+        if result.matched_count == 0:
+            return jsonify({"error": "Session not found"}), 404
+            
+        return jsonify({"status": "success", "locked": locked})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@chat_bp.route("/chat/<session_id>/expire", methods=["POST"])
+def set_expiry(session_id):
+    """
+    Sets or clears the auto-expiry for a chat session.
+    Expects JSON: {"duration": "1h" | "24h" | "7d" | null}
+    """
+    data = request.get_json() or {}
+    duration = data.get("duration")
+    
+    if not ObjectId.is_valid(session_id):
+        return jsonify({"error": "Invalid session_id"}), 400
+        
+    expires_at = None
+    if duration == "1h":
+        expires_at = datetime.now() + timedelta(hours=1)
+    elif duration == "24h":
+        expires_at = datetime.now() + timedelta(hours=24)
+    elif duration == "7d":
+        expires_at = datetime.now() + timedelta(days=7)
+    elif duration is not None:
+        return jsonify({"error": "Invalid duration"}), 400
+        
+    try:
+        update_op = {"$set": {"expires_at": expires_at}} if expires_at else {"$unset": {"expires_at": ""}}
+        result = mongo.db.sessions.update_one(
+            {"_id": ObjectId(session_id)},
+            update_op
+        )
+        if result.matched_count == 0:
+            return jsonify({"error": "Session not found"}), 404
+            
+        return jsonify({
+            "status": "success", 
+            "expires_at": expires_at.isoformat() if expires_at else None
+        })
+    except Exception as e:
         return jsonify({"error": str(e)}), 500

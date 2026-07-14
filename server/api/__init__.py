@@ -22,6 +22,12 @@ def create_app():
     # Initialize Plugins
     global plugin_manager
     plugin_manager = init_plugin_manager(app.config['PLUGINS_DIRS'], app.config['ENABLED_PLUGINS'])
+    
+    with app.app_context():
+        try:
+            mongo.db.sessions.create_index("expires_at", expireAfterSeconds=0)
+        except Exception as e:
+            print(f"Warning: Failed to create TTL index for sessions: {e}")
 
     @app.route("/")
     def index():

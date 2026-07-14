@@ -55,6 +55,8 @@ import {
   Square,
   ChevronLeft,
   RefreshCw,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -99,6 +101,8 @@ type ChatSession = {
   id: string;
   sessionName: string;
   lastMessage: string;
+  locked?: boolean;
+  expires_at?: string;
 };
 
 interface UploadedFile {
@@ -618,6 +622,8 @@ export default function ChatPage() {
   const [editedName, setEditedName] = useState<string>("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [deleteChatSessionModal, setDeleteChatSessionModal] = useState(false);
+  const [expiryModal, setExpiryModal] = useState(false);
+  const [expirySessionId, setExpirySessionId] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
   const [abortController, setAbortController] =
@@ -1047,6 +1053,8 @@ export default function ChatPage() {
                   created_at: session.created_at,
                   lastMessage: lastMsg,
                   sessionName: session.session_name || lastMsg,
+                  locked: session.locked || false,
+                  expires_at: session.expires_at || undefined,
                 };
               },
             );
@@ -2510,6 +2518,56 @@ export default function ChatPage() {
     }
   };
 
+  const handleToggleLockSession = async (id: string, currentLocked = false) => {
+    if (id === "1") return;
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${id}/lock`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ locked: !currentLocked }),
+      });
+      if (response.ok) {
+        setChatSessions((prev) =>
+          prev.map((session) =>
+            session.id === id ? { ...session, locked: !currentLocked } : session
+          )
+        );
+        toast.success(!currentLocked ? "Chat locked" : "Chat unlocked");
+      }
+    } catch (e) {
+      toast.error("Failed to toggle lock");
+    }
+  };
+
+  const handleSetExpiry = async (duration: string | null) => {
+    if (!expirySessionId || expirySessionId === "1") return;
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${expirySessionId}/expire`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ duration }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setChatSessions((prev) =>
+          prev.map((session) =>
+            session.id === expirySessionId ? { ...session, expires_at: data.expires_at } : session
+          )
+        );
+        toast.success(duration ? `Auto-expire set to ${duration}` : "Auto-expire removed");
+        setExpiryModal(false);
+      }
+    } catch (e) {
+      toast.error("Failed to set expiry");
+    }
+  };
+
   const handleRenameSession = (id: string) => {
     const session = chatSessions.find((s) => s.id === id);
     if (!session) return;
@@ -2633,6 +2691,10 @@ export default function ChatPage() {
   }, [chatSessions]);
 
   if (showSplash) return <SplashScreen />;
+
+  const activeSession = chatSessions.find((s) => s.id === sessionId);
+  const isSessionLocked = activeSession?.locked ?? false;
+  const isInputDisabled = isLimitReached || isSessionLocked;
 
   return (
     <div className="flex h-screen bg-background">
@@ -2767,8 +2829,10 @@ export default function ChatPage() {
                           className="text-sm font-medium bg-transparent border-b border-black outline-none"
                         />
                       ) : (
-                        <p className="text-sm font-medium truncate cursor-pointer">
-                          {session.sessionName}
+                        <p className="text-sm font-medium truncate cursor-pointer flex items-center gap-1">
+                          {session.locked && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                          {session.expires_at && <Clock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                          <span className="truncate">{session.sessionName}</span>
                         </p>
                       )}
 
@@ -2792,9 +2856,22 @@ export default function ChatPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           onClick={() => handleRenameSession(session.id)}
+                          disabled={session.locked}
                         >
                           <Edit className="w-4 h-4 mr-2" />
                           Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleToggleLockSession(session.id, session.locked)}
+                        >
+                          {session.locked ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                          {session.locked ? "Unlock" : "Lock"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => { setExpirySessionId(session.id); setExpiryModal(true); }}
+                        >
+                          <Clock className="w-4 h-4 mr-2" />
+                          Auto-Expire
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
@@ -3396,7 +3473,7 @@ export default function ChatPage() {
               {chatSessionSuggestions.length > 0 ? (
                 <MentionsInput
                   value={input}
-                  disabled={isLimitReached}
+                  disabled={isInputDisabled}
                   onChange={(_event, newValue) => setInput(newValue)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -3405,9 +3482,11 @@ export default function ChatPage() {
                     }
                   }}
                   placeholder={
-                    isLimitReached
-                      ? "Session limit reached. Please start a new chat."
-                      : "Type your message and use @ to mention chats..."
+                    isSessionLocked
+                      ? "This session is locked."
+                      : isLimitReached
+                        ? "Session limit reached. Please start a new chat."
+                        : "Type your message and use @ to mention chats..."
                   }
                   style={{
                     control: {
@@ -3455,7 +3534,7 @@ export default function ChatPage() {
               ) : (
                 <Textarea
                   value={input}
-                  disabled={isLimitReached}
+                  disabled={isInputDisabled}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -3464,9 +3543,11 @@ export default function ChatPage() {
                     }
                   }}
                   placeholder={
-                    isLimitReached
-                      ? "Session limit reached. Please start a new chat."
-                      : "Type your message in markdown..."
+                    isSessionLocked
+                      ? "This session is locked."
+                      : isLimitReached
+                        ? "Session limit reached. Please start a new chat."
+                        : "Type your message in markdown..."
                   }
                   className={`flex-1 resize-none min-h-[80px] ${
                     isRecording ? "text-transparent caret-foreground" : ""
@@ -3488,7 +3569,7 @@ export default function ChatPage() {
                 disabled={
                   isTyping ||
                   (!uploadedFile && input.trim() === "") ||
-                  isLimitReached
+                  isInputDisabled
                 }
               >
                 <Send className="w-4 h-4" />
@@ -3602,6 +3683,43 @@ export default function ChatPage() {
               onClick={() => handleDeleteChatSession(sessionId)}
             >
               Delete Chat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Expire Chat Session Modal */}
+      <Dialog
+        open={expiryModal}
+        onOpenChange={setExpiryModal}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Auto-Expiry</DialogTitle>
+            <DialogDescription>
+              Choose when this chat should automatically be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button variant="outline" onClick={() => handleSetExpiry("1h")}>
+              1 Hour
+            </Button>
+            <Button variant="outline" onClick={() => handleSetExpiry("24h")}>
+              24 Hours
+            </Button>
+            <Button variant="outline" onClick={() => handleSetExpiry("7d")}>
+              7 Days
+            </Button>
+            <Button variant="destructive" onClick={() => handleSetExpiry(null)}>
+              Remove Expiry
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setExpiryModal(false)}
+            >
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
