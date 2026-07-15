@@ -24,6 +24,10 @@ def google_auth():
         if not email:
             return jsonify({'message': 'Invalid token payload: Email missing'}), 400
 
+        # Check if MongoDB is connected
+        if mongo.db is None:
+            return jsonify({'message': 'Database connection error'}), 500
+
         user = mongo.db.users.find_one({'email': email})
         
         if not user:
@@ -35,7 +39,8 @@ def google_auth():
                 'dob': None,
                 'phone': None,
                 'chat_sessions': [],       
-                'created_at': datetime.datetime.utcnow()
+                'created_at': datetime.datetime.utcnow(),
+                'ollama_url': 'http://localhost:11434'
             }
             result = mongo.db.users.insert_one(new_user)
             user_id = str(result.inserted_id)
@@ -72,45 +77,55 @@ def register():
     HTTP 409: If user already exists
     HTTP 201: On successful registration
     """
-    data = request.get_json()
-    
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({'message': 'Missing email or password'}), 400
-    
-    email = data.get('email')
-    password = data.get('password')
-    
-    # user already exists
-    if mongo.db.users.find_one({'email': email}):
-        return jsonify({'message': 'User already exists'}), 409
-    
-    # hash password
-    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-    
-    # handle optional fields
-    username = data.get('username')
-    if not username:
-        username = email.split('@')[0]
+    try:
+        data = request.get_json()
         
-    gender = data.get('gender')
-    dob = data.get('dob')
-    phone = data.get('phone')
-    
-    # create user
-    user = {
-        'email': email,
-        'password': hashed_password,
-        'username': username,
-        'gender': gender if gender else None,
-        'dob': dob if dob else None,
-        'phone': phone if phone else None,
-        'created_at': datetime.datetime.utcnow(),
-        'chat_sessions': []
-    }
-    
-    mongo.db.users.insert_one(user)
-    
-    return jsonify({'message': 'User registered successfully'}), 201
+        if not data or not data.get('email') or not data.get('password'):
+            return jsonify({'message': 'Missing email or password'}), 400
+        
+        email = data.get('email')
+        password = data.get('password')
+        
+        # Check if MongoDB is connected
+        if mongo.db is None:
+            return jsonify({'message': 'Database connection error'}), 500
+        
+        # user already exists
+        if mongo.db.users.find_one({'email': email}):
+            return jsonify({'message': 'User already exists'}), 409
+        
+        # hash password
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        
+        # handle optional fields
+        username = data.get('username')
+        if not username:
+            username = email.split('@')[0]
+            
+        gender = data.get('gender')
+        dob = data.get('dob')
+        phone = data.get('phone')
+        
+        # create user
+        user = {
+            'email': email,
+            'password': hashed_password,
+            'username': username,
+            'gender': gender if gender else None,
+            'dob': dob if dob else None,
+            'phone': phone if phone else None,
+            'created_at': datetime.datetime.utcnow(),
+            'chat_sessions': [],
+            'ollama_url': 'http://localhost:11434'
+        }
+        
+        mongo.db.users.insert_one(user)
+        
+        return jsonify({'message': 'User registered successfully'}), 201
+
+    except Exception as e:
+        print(f"Registration error: {e}")
+        return jsonify({'message': f'Registration failed: {str(e)}'}), 500
 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
@@ -134,6 +149,10 @@ def login():
     
     email = data.get('email')
     password = data.get('password')
+    
+    # Check if MongoDB is connected
+    if mongo.db is None:
+        return jsonify({'message': 'Database connection error'}), 500
     
     user = mongo.db.users.find_one({'email': email})
     
@@ -174,6 +193,11 @@ def get_profile():
     try:
         data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
         user_id = data['user_id']
+        
+        # Check if MongoDB is connected
+        if mongo.db is None:
+            return jsonify({'message': 'Database connection error'}), 500
+        
         user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
         
         if not user:
@@ -185,6 +209,7 @@ def get_profile():
             'gender': user.get('gender'),
             'dob': user.get('dob'),
             'phone': user.get('phone'),
+            'ollama_url': user.get('ollama_url', 'http://localhost:11434'),
         }), 200
     except Exception as e:
         return jsonify({'message': 'Invalid token', 'error': str(e)}), 401
@@ -200,6 +225,7 @@ def update_profile():
     - gender (str): New gender
     - dob (str): New date of birth
     - phone (str): New phone number
+    - ollama_url (str): Ollama instance URL
 
     Returns:
     JSON: Success message on update
@@ -220,13 +246,15 @@ def update_profile():
         data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
         user_id = data['user_id']
         
+        # Check if MongoDB is connected
+        if mongo.db is None:
+            return jsonify({'message': 'Database connection error'}), 500
+        
         update_data = request.get_json()
         if not update_data:
              return jsonify({'message': 'No data provided'}), 400
 
-        allowed_fields = ['username', 'gender', 'dob', 'phone']
-        
-        allowed_fields = ['username', 'gender', 'dob', 'phone']
+        allowed_fields = ['username', 'gender', 'dob', 'phone', 'ollama_url']
         
         updates = {}
         for field in allowed_fields:

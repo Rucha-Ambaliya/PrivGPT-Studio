@@ -11,6 +11,10 @@ def rate_limit(limit=10, per=60):
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
+            # Skip rate limiting if MongoDB is not connected
+            if mongo.db is None:
+                return f(*args, **kwargs)
+                
             ip = request.remote_addr
             now = datetime.utcnow()
             window_start = now - timedelta(seconds=per)

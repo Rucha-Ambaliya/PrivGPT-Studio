@@ -36,6 +36,10 @@ def has_reached_message_limit(session_id):
     Checks if the session has reached the configured message limit.
     Returns True if limit is reached, False otherwise.
     """
+    # Skip limit check if MongoDB is not connected
+    if mongo.db is None:
+        return False
+        
     # New sessions ("1") or invalid IDs don't have history to limit yet
     if session_id == "1" or not session_id or not ObjectId.is_valid(session_id):
         return False
@@ -80,30 +84,32 @@ def save_and_return(session_id, session_name, model_name, user_msg, bot_reply, u
         }
     ]
 
-    if session_id != "1":
-        mongo.db.sessions.update_one(
-            {"_id": ObjectId(session_id)},
-            {
-                "$push": {"messages": {"$each": messages}},
-                "$set": {"session_name": session_name or "How can I help you?"}
-            },
-        )
-    else:
-        session_doc = {
-            "messages": messages,
-            "created_at": datetime.now(),
-            "session_name": session_name or "How can I help you?",
-            "user_id": user_id 
-        }
-        inserted = mongo.db.sessions.insert_one(session_doc)
-        session_id = str(inserted.inserted_id)
-        
-        # Add to user's chat list
-        if user_id:
-             mongo.db.users.update_one(
-                {"_id": ObjectId(user_id)},
-                {"$push": {"chat_sessions": session_id}}
+    # Skip database operations if MongoDB is not connected
+    if mongo.db is not None:
+        if session_id != "1":
+            mongo.db.sessions.update_one(
+                {"_id": ObjectId(session_id)},
+                {
+                    "$push": {"messages": {"$each": messages}},
+                    "$set": {"session_name": session_name or "How can I help you?"}
+                },
             )
+        else:
+            session_doc = {
+                "messages": messages,
+                "created_at": datetime.now(),
+                "session_name": session_name or "How can I help you?",
+                "user_id": user_id 
+            }
+            inserted = mongo.db.sessions.insert_one(session_doc)
+            session_id = str(inserted.inserted_id)
+            
+            # Add to user's chat list
+            if user_id:
+                 mongo.db.users.update_one(
+                    {"_id": ObjectId(user_id)},
+                    {"$push": {"chat_sessions": session_id}}
+                )
 
     return jsonify({
         "response": bot_reply,
@@ -141,6 +147,7 @@ def chat():
         model_name = request.form.get("model_name", "")
         session_id = request.form.get("session_id", "1")
         session_name = request.form.get("session_name", "")
+        ollama_url = request.form.get("ollama_url", "http://localhost:11434")
         
         # Plugin: before_prompt
         if plugin_manager:
@@ -256,7 +263,7 @@ def chat():
                 payload["system"] = system_prompt
             try:
                 latency_ms = datetime.now()
-                response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=60)
+                response = requests.post(f"{ollama_url}/api/generate", json=payload, timeout=60)
                 latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
                 bot_reply = response.json().get("response", "No reply.")
                 
@@ -343,31 +350,32 @@ def chat():
 ]
 
         # save chat history to DB
-        if session_id != "1":
-            mongo.db.sessions.update_one(
-                {"_id": ObjectId(session_id)},
-                {"$push": {"messages": {"$each": messages}}},
-            )
-        else:
-            session_doc = {
-                "session_name": session_name or "How can I help you?",
-                "messages": messages,
-                "created_at": datetime.now(),
-                "user_id": user_id
-            }
-            inserted = mongo.db.sessions.insert_one(session_doc)
-            session_id = str(inserted.inserted_id)
-            
-            # Plugin: on_session_start
-            if plugin_manager:
-                plugin_manager.on_session_start()
-            
-            # Add to user's chat list if logged in
-            if user_id:
-                mongo.db.users.update_one(
-                    {"_id": ObjectId(user_id)},
-                    {"$push": {"chat_sessions": session_id}}
+        if mongo.db is not None:
+            if session_id != "1":
+                mongo.db.sessions.update_one(
+                    {"_id": ObjectId(session_id)},
+                    {"$push": {"messages": {"$each": messages}}},
                 )
+            else:
+                session_doc = {
+                    "session_name": session_name or "How can I help you?",
+                    "messages": messages,
+                    "created_at": datetime.now(),
+                    "user_id": user_id
+                }
+                inserted = mongo.db.sessions.insert_one(session_doc)
+                session_id = str(inserted.inserted_id)
+                
+                # Plugin: on_session_start
+                if plugin_manager:
+                    plugin_manager.on_session_start()
+                
+                # Add to user's chat list if logged in
+                if user_id:
+                    mongo.db.users.update_one(
+                        {"_id": ObjectId(user_id)},
+                        {"$push": {"chat_sessions": session_id}}
+                    )
 
         return jsonify({
             "response": bot_reply,
@@ -399,6 +407,7 @@ def chat_stream():
         model_name = request.form.get("model_name", "")
         session_id = request.form.get("session_id", "1")
         session_name = request.form.get("session_name", "")
+        ollama_url = request.form.get("ollama_url", "http://localhost:11434")
 
         # Plugin: before_prompt
         if plugin_manager:
@@ -512,7 +521,7 @@ def chat_stream():
                             payload["options"]["seed"] = seed
                         if system_prompt:
                             payload["system"] = system_prompt
-                        response = requests.post("http://localhost:11434/api/generate", json=payload, stream=True, timeout=60)
+                        response = requests.post(f"{ollama_url}/api/generate", json=payload, stream=True, timeout=60)
                         response.raise_for_status()
                         
                         for line in response.iter_lines():
@@ -619,31 +628,32 @@ def chat_stream():
                 ]
 
                 final_session_id = session_id
-                if session_id != "1":
-                    mongo.db.sessions.update_one(
-                        {"_id": ObjectId(session_id)},
-                        {"$push": {"messages": {"$each": messages}}},
-                    )
-                else:
-                    session_doc = {
-                        "session_name": session_name or "How can I help you?",
-                        "messages": messages,
-                        "created_at": datetime.now(),
-                        "user_id": user_id
-                    }
-                    inserted = mongo.db.sessions.insert_one(session_doc)
-                    final_session_id = str(inserted.inserted_id)
-
-                    # Plugin: on_session_start
-                    if plugin_manager:
-                        plugin_manager.on_session_start()
-
-                    # Add to user's chat list
-                    if user_id:
-                        mongo.db.users.update_one(
-                            {"_id": ObjectId(user_id)},
-                            {"$push": {"chat_sessions": final_session_id}}
+                if mongo.db is not None:
+                    if session_id != "1":
+                        mongo.db.sessions.update_one(
+                            {"_id": ObjectId(session_id)},
+                            {"$push": {"messages": {"$each": messages}}},
                         )
+                    else:
+                        session_doc = {
+                            "session_name": session_name or "How can I help you?",
+                            "messages": messages,
+                            "created_at": datetime.now(),
+                            "user_id": user_id
+                        }
+                        inserted = mongo.db.sessions.insert_one(session_doc)
+                        final_session_id = str(inserted.inserted_id)
+
+                        # Plugin: on_session_start
+                        if plugin_manager:
+                            plugin_manager.on_session_start()
+
+                        # Add to user's chat list
+                        if user_id:
+                            mongo.db.users.update_one(
+                                {"_id": ObjectId(user_id)},
+                                {"$push": {"chat_sessions": final_session_id}}
+                            )
                 
                 # Plugin: after_response (for streaming, we process at the end)
                 if plugin_manager:

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, Loader2, Edit2, Save, X, CalendarIcon, LogOut } from "lucide-react";
+import { User, Mail, Loader2, Edit2, Save, X, CalendarIcon, LogOut, Cpu, CheckCircle2, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -71,17 +71,21 @@ export default function SettingsPage() {
     gender: string;
     dob: string;
     phone: string;
+    ollama_url: string;
   } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ 
     username: "",
     gender: "",
     dob: "",
-    phone: ""
+    phone: "",
+    ollama_url: ""
   });
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !token) {
@@ -106,6 +110,7 @@ export default function SettingsPage() {
             gender: profileData.gender || "",
             dob: profileData.dob || "",
             phone: profileData.phone || "",
+            ollama_url: profileData.ollama_url || "http://localhost:11434",
           });
         }
       } catch (error) {
@@ -155,9 +160,44 @@ export default function SettingsPage() {
         gender: profile.gender || "",
         dob: profile.dob || "",
         phone: profile.phone || "",
+        ollama_url: profile.ollama_url || "http://localhost:11434",
       });
     }
     setIsEditing(false);
+    setConnectionStatus(null);
+  };
+
+  const testConnection = async () => {
+    if (!formData.ollama_url) {
+      toast.error("Please enter an Ollama URL");
+      return;
+    }
+
+    setTestingConnection(true);
+    setConnectionStatus(null);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/test_ollama`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ollama_url: formData.ollama_url }),
+      });
+
+      const data = await res.json();
+      setConnectionStatus(data);
+
+      if (data.success) {
+        toast.success("Connection successful!");
+      } else {
+        toast.error(data.message || "Connection failed");
+      }
+    } catch (error) {
+      console.error("Connection test error", error);
+      setConnectionStatus({ success: false, message: "Failed to test connection" });
+      toast.error("Failed to test connection");
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   const handleLogout = () => {
@@ -335,6 +375,60 @@ export default function SettingsPage() {
                     className={`pl-9 ${!isEditing ? "bg-muted" : "bg-background"}`}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ollama_url">Ollama URL</Label>
+                <div className="relative">
+                  <Cpu className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="ollama_url"
+                    type="text"
+                    value={isEditing ? formData.ollama_url : profile?.ollama_url || "http://localhost:11434"}
+                    onChange={(e) => setFormData({ ...formData, ollama_url: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="http://localhost:11434"
+                    className={`pl-9 ${!isEditing ? "bg-muted" : "bg-background"}`}
+                  />
+                </div>
+                {isEditing && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={testConnection}
+                      disabled={testingConnection}
+                      className="mt-2"
+                    >
+                      {testingConnection ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Test Connection"
+                      )}
+                    </Button>
+                    {connectionStatus && (
+                      <div className="flex items-center gap-1 mt-2 text-sm">
+                        {connectionStatus.success ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <span className="text-green-600 dark:text-green-400">{connectionStatus.message}</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4 text-red-500" />
+                            <span className="text-red-600 dark:text-red-400">{connectionStatus.message}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!isEditing && (
+                  <p className="text-xs text-muted-foreground">
+                    Configure your local Ollama instance URL for using local models.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

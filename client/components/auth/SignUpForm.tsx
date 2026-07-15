@@ -103,7 +103,7 @@ const CalendarDropdown = (props: DropdownProps) => {
   };
 
   return (
-    <Select value={value?.toString()} onValueChange={handleChange}>
+    <Select value={value?.toString() || ""} onValueChange={handleChange}>
       <SelectTrigger className="pr-1.5 focus:ring-0">
         <SelectValue>{options.find(o => o.props.value === value)?.props.children}</SelectValue>
       </SelectTrigger>
@@ -339,7 +339,7 @@ export function SignUpForm() {
                   <FormLabel>Gender</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger>

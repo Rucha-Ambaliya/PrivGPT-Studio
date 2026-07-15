@@ -55,6 +55,7 @@ import {
   Square,
   ChevronLeft,
   RefreshCw,
+  Cloud,
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -654,6 +655,26 @@ export default function ChatPage() {
   const [stopSequence, setStopSequence] = useState("");
   const [seed, setSeed] = useState<number | "">(""); // Empty string means random seed
   const [systemPrompt, setSystemPrompt] = useState(""); // System prompt for model behavior
+  const [userOllamaUrl, setUserOllamaUrl] = useState<string>("http://localhost:11434");
+
+  useEffect(() => {
+    const fetchUserOllamaUrl = async () => {
+      if (!token) return;
+      try {
+        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setUserOllamaUrl(profileData.ollama_url || "http://localhost:11434");
+        }
+      } catch (error) {
+        console.error("Failed to fetch user Ollama URL", error);
+      }
+    };
+
+    fetchUserOllamaUrl();
+  }, [token]);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 4000);
@@ -737,6 +758,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             model_name: selectedModel,
             model_type: selectedModelType,
+            ollama_url: userOllamaUrl,
           }),
         },
       );
@@ -924,9 +946,10 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/models`,
-        );
+        const url = userOllamaUrl
+          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/models?ollama_url=${encodeURIComponent(userOllamaUrl)}`
+          : `${process.env.NEXT_PUBLIC_BACKEND_URL}/models`;
+        const response = await fetch(url);
         const data = await response.json();
         const local: string[] = data.local_models || [];
         const cloud: string[] = data.cloud_models || [];
@@ -980,7 +1003,7 @@ export default function ChatPage() {
       }
     };
     fetchModels();
-  }, []);
+  }, [userOllamaUrl]);
 
   const fallbackToGemini = (errorText: string) => {
     const geminiAvailable = cloudModels.includes("gemini");
@@ -1191,6 +1214,7 @@ export default function ChatPage() {
     formData.append("model_name", selectedModel);
     formData.append("timestamp", userMessage.timestamp.toISOString());
     if (sessionId) formData.append("session_id", sessionId);
+    formData.append("ollama_url", userOllamaUrl);
 
     // append inference parameters
     formData.append("temperature", temperature.toString());
@@ -1550,6 +1574,7 @@ export default function ChatPage() {
     formData.append("model_name", modelName);
     formData.append("timestamp", userMessage.timestamp.toISOString());
     if (sessionId) formData.append("session_id", sessionId);
+    formData.append("ollama_url", userOllamaUrl);
 
     // append inference parameters
     formData.append("temperature", temperature.toString());
@@ -1776,6 +1801,7 @@ export default function ChatPage() {
     formData.append("model_name", selectedModel);
     formData.append("timestamp", userMessage.timestamp.toISOString());
     if (sessionId) formData.append("session_id", sessionId);
+    formData.append("ollama_url", userOllamaUrl);
 
     // append inference parameters
     formData.append("temperature", temperature.toString());
@@ -3355,6 +3381,33 @@ export default function ChatPage() {
                 <span className="ml-1 text-xs font-medium">Listening...</span>
               )}
             </Button>
+          </div>
+
+          {/* Model Type Indicator */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2 text-sm">
+              <span className="text-muted-foreground">Using:</span>
+              <Badge variant={selectedModelType === "local" ? "default" : "secondary"} className="text-xs">
+                {selectedModelType === "local" ? (
+                  <>
+                    <Cpu className="w-3 h-3 mr-1" />
+                    Local
+                  </>
+                ) : (
+                  <>
+                    <Cloud className="w-3 h-3 mr-1" />
+                    Cloud
+                  </>
+                )}
+              </Badge>
+              <span className="text-xs text-muted-foreground">{selectedModel}</span>
+            </div>
+            {selectedModelType === "local" && userOllamaUrl !== "http://localhost:11434" && (
+              <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                <Cpu className="w-3 h-3" />
+                <span>Custom Ollama</span>
+              </div>
+            )}
           </div>
 
           {/* Input Row */}
