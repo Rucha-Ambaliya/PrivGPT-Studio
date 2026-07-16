@@ -97,7 +97,7 @@ export default function Footer() {
             <h3 className="font-semibold mb-4">Resources</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <Link href="#" className="hover:text-foreground">
+                <Link href="/docs" className="hover:text-foreground">
                   Documentation
                 </Link>
               </li>
