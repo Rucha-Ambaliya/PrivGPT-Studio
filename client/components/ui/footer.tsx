@@ -80,12 +80,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-foreground">
+                <Link href="/api-access" className="hover:text-foreground">
                   API Access
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-foreground">
+                <Link href="/model-library" className="hover:text-foreground">
                   Model Library
                 </Link>
               </li>
