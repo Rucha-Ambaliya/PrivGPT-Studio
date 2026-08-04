@@ -1,4 +1,7 @@
 import requests
+from api.config import Config
+
+OLLAMA_BASE_URL = Config.OLLAMA_BASE_URL
 
 def get_available_models():
     """
@@ -8,7 +11,7 @@ def get_available_models():
     list: Names of available local models (with full tags).
     """
     try:
-        res = requests.get("http://localhost:11434/api/tags", timeout=5)
+        res = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
         # Return full model names including tags (e.g., "gemma3:1b" instead of just "gemma3")
         return sorted(m['name'] for m in res.json().get("models", []))
     except:
@@ -25,7 +28,7 @@ def get_model_details(model_name):
     dict: The JSON response from Ollama's /api/show endpoint, or None if failed.
     """
     try:
-        res = requests.post("http://localhost:11434/api/show", json={"name": model_name}, timeout=5)
+        res = requests.post(f"{OLLAMA_BASE_URL}/api/show", json={"name": model_name}, timeout=5)
         if res.status_code == 200:
             return res.json()
         return None

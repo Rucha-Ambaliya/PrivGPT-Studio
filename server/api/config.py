@@ -27,3 +27,4 @@ class Config:
     ENABLED_PLUGINS = os.getenv("ENABLED_PLUGINS", None) # Comma-separated list of plugin folder names
     MAX_MESSAGES_PER_SESSION = int(os.getenv("MAX_MESSAGES_PER_SESSION", 10))
     CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "support@privgpt-studio.com")
+    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")

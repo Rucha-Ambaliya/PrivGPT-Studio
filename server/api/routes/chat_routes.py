@@ -286,7 +286,7 @@ def chat():
                 payload["system"] = system_prompt
             try:
                 latency_ms = datetime.now()
-                response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=60)
+                response = requests.post(f"{Config.OLLAMA_BASE_URL}/api/generate", json=payload, timeout=60)
                 latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
                 bot_reply = response.json().get("response", "No reply.")
                 
@@ -549,7 +549,7 @@ def chat_stream():
                             payload["options"]["seed"] = seed
                         if system_prompt:
                             payload["system"] = system_prompt
-                        response = requests.post("http://localhost:11434/api/generate", json=payload, stream=True, timeout=60)
+                        response = requests.post(f"{Config.OLLAMA_BASE_URL}/api/generate", json=payload, stream=True, timeout=60)
                         response.raise_for_status()
                         
                         for line in response.iter_lines():
