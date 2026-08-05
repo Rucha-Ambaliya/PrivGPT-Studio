@@ -3,15 +3,30 @@ from flask import request, jsonify, current_app
 from datetime import datetime, timedelta
 from api import mongo
 
+def _client_ip():
+    """
+    Identify the real client for rate limiting. Behind a proxy (Vercel /
+    Railway / any reverse proxy) request.remote_addr is the proxy's IP, which
+    buckets every client together — so the limit throttles legitimate users
+    while doing nothing per-attacker. Use the left-most X-Forwarded-For entry
+    (the original client, set by the proxy) when present.
+    """
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        client = forwarded.split(",")[0].strip()
+        if client:
+            return client
+    return request.remote_addr
+
 def rate_limit(limit=10, per=60):
     """
     Rate limiting middleware using MongoDB.
-    Limits requests to `limit` per `per` seconds based on IP address.
+    Limits requests to `limit` per `per` seconds per client.
     """
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            ip = request.remote_addr
+            ip = _client_ip()
             now = datetime.utcnow()
             window_start = now - timedelta(seconds=per)
             
