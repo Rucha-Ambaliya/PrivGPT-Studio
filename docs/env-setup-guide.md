@@ -37,6 +37,21 @@ MONGODB_URL=mongodb+srv://myuser:mypassword@cluster0.mongodb.net/mydb
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
+### `SECRET_KEY`
+- **What it is:** Secret used to sign and verify auth (JWT) tokens. **Required** — the server refuses to start without it. Never commit it or share it; anyone who knows it can forge tokens for any user.
+- **Where to set:** `server/.env`
+
+#### 🔧 How to Get It:
+- Generate a long random value, e.g.:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+#### 📝 Example:
+```env
+SECRET_KEY=your_generated_secret_key
+```
+
 ### `GOOGLE_CLIENT_ID`
 
 - **What it is:** The Client ID and Secret used to verify Google authentication tokens on the server.
