@@ -25,12 +25,40 @@ def validate_user(req):
     if not token:
         return None
         
-    try: 
+    try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
             return data['user_id']
     except Exception:
             return None
-    
+
+
+def user_owns_session(session, user_id):
+    """
+    Whether the caller may act on this session. A logged-in user may only touch
+    their own sessions; a guest (user_id None) may only touch guest sessions
+    (user_id None) — mirroring the chat_history guard so no one can read or
+    mutate another user's session by id.
+    """
+    owner = session.get("user_id")
+    if owner is None:
+        return user_id is None
+    return str(owner) == str(user_id)
+
+
+def load_owned_session(session_id, req):
+    """
+    Load a session by id and authorize the caller. Returns (session, None) on
+    success, or (None, (response, status)) to return directly on error.
+    """
+    if not session_id or not ObjectId.is_valid(session_id):
+        return None, (jsonify({"error": "Invalid session_id"}), 400)
+    session = mongo.db.sessions.find_one({"_id": ObjectId(session_id)})
+    if not session:
+        return None, (jsonify({"error": "Session not found"}), 404)
+    if not user_owns_session(session, validate_user(req)):
+        return None, (jsonify({"error": "Not authorized"}), 403)
+    return session, None
+
 def has_reached_message_limit(session_id):
     """
     Checks if the session has reached the configured message limit.
@@ -769,10 +797,9 @@ def get_session_messages(session_id):
     JSON: Session ID and message list or error.
     """
     try:
-        session = mongo.db.sessions.find_one({"_id": ObjectId(session_id)})
-
-        if not session:
-            return jsonify({"error": "Session not found"}), 404
+        session, err = load_owned_session(session_id, request)
+        if err:
+            return err
 
         if "expires_at" in session and hasattr(session["expires_at"], "isoformat"):
             session["expires_at"] = session["expires_at"].isoformat()
@@ -811,6 +838,10 @@ def rename_session():
     if not session_id or not new_name:
         return jsonify({"error": "Missing session_id or new_name"}), 400
 
+    _, err = load_owned_session(session_id, request)
+    if err:
+        return err
+
     if is_session_locked(session_id):
         return jsonify({"error": "This chat is locked and cannot be renamed."}), 403
 
@@ -843,6 +874,10 @@ def clear():
     if not session_id:
         return jsonify({"error": "Missing session_id"}), 400
 
+    _, err = load_owned_session(session_id, request)
+    if err:
+        return err
+
     if is_session_locked(session_id):
         return jsonify({"error": "This chat is locked and cannot be cleared."}), 403
 
@@ -872,9 +907,9 @@ def delete_chat(session_id):
     JSON: Status message indicating success or failure.
     """
     try:
-        # Validate session_id
-        if not ObjectId.is_valid(session_id):
-            return jsonify({"error": "Invalid session_id"}), 400
+        _, err = load_owned_session(session_id, request)
+        if err:
+            return err
 
         # Attempt to delete
         result = mongo.db.sessions.delete_one({"_id": ObjectId(session_id)})
@@ -904,10 +939,11 @@ def toggle_lock(session_id):
     """
     data = request.get_json() or {}
     locked = data.get("locked", True)
-    
-    if not ObjectId.is_valid(session_id):
-        return jsonify({"error": "Invalid session_id"}), 400
-        
+
+    _, err = load_owned_session(session_id, request)
+    if err:
+        return err
+
     try:
         result = mongo.db.sessions.update_one(
             {"_id": ObjectId(session_id)},
@@ -928,10 +964,11 @@ def set_expiry(session_id):
     """
     data = request.get_json() or {}
     duration = data.get("duration")
-    
-    if not ObjectId.is_valid(session_id):
-        return jsonify({"error": "Invalid session_id"}), 400
-        
+
+    _, err = load_owned_session(session_id, request)
+    if err:
+        return err
+
     expires_at = None
     if duration == "1h":
         expires_at = datetime.now() + timedelta(hours=1)
