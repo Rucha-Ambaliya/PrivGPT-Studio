@@ -37,7 +37,7 @@ MONGODB_URL=mongodb+srv://myuser:mypassword@cluster0.mongodb.net/mydb
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-### `SECRET_KEY`
+### `JWT_SECRET_KEY`
 - **What it is:** Secret used to sign and verify auth (JWT) tokens. **Required** — the server refuses to start without it. Never commit it or share it; anyone who knows it can forge tokens for any user.
 - **Where to set:** `server/.env`
 
