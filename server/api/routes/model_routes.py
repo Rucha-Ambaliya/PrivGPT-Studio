@@ -8,11 +8,14 @@ def models():
     """
     Returns available local and cloud models.
 
+    Accepts optional query param ?ollama_url= so deployed frontends can
+    proxy through a user-supplied Ollama address (e.g. an ngrok tunnel).
+
     Returns:
     JSON: Dictionary with local_models and cloud_models keys.
     """
-
-    local_models = get_available_models()
+    ollama_url = request.args.get("ollama_url") or None
+    local_models = get_available_models(ollama_url=ollama_url)
     cloud_models = ["gemini"]
     return jsonify({
         "local_models": local_models,
@@ -23,7 +26,7 @@ def models():
 def model_info():
     """
     Returns detailed information about a specific model.
-    Expects JSON: { "model_name": "name", "model_type": "local"|"cloud" }
+    Expects JSON: { "model_name": "name", "model_type": "local"|"cloud", "ollama_url": "..." (optional) }
     """
     data = request.json
     if not data:
@@ -31,6 +34,7 @@ def model_info():
 
     model_name = data.get("model_name")
     model_type = data.get("model_type", "local")
+    ollama_url = data.get("ollama_url") or None
 
     if not model_name:
         return jsonify({"error": "Model name is required"}), 400
@@ -51,10 +55,10 @@ def model_info():
             }
         })
 
-    details = get_model_details(model_name)
+    details = get_model_details(model_name, ollama_url=ollama_url)
     if details:
         return jsonify(details)
-    
+
     return jsonify({"error": "Failed to fetch model info"}), 500
 
 select_model_bp = Blueprint('select_model_bp', __name__)

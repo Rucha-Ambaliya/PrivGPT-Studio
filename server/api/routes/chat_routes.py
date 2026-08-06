@@ -164,11 +164,14 @@ def chat():
         model_name = request.form.get("model_name", "")
         session_id = request.form.get("session_id", "1")
         session_name = request.form.get("session_name", "")
-        
+        # User-supplied Ollama URL (e.g. an ngrok tunnel) lets deployed instances
+        # proxy to the user's local Ollama without changing the server default.
+        ollama_url = request.form.get("ollama_url") or Config.OLLAMA_BASE_URL
+
         # Plugin: before_prompt
         if plugin_manager:
             user_msg = plugin_manager.before_prompt(user_msg)
-            
+
         user_timestamp = datetime.now() - timedelta(seconds=10)
         session_id = request.form.get("session_id", "1")
 
@@ -286,7 +289,7 @@ def chat():
                 payload["system"] = system_prompt
             try:
                 latency_ms = datetime.now()
-                response = requests.post(f"{Config.OLLAMA_BASE_URL}/api/generate", json=payload, timeout=60)
+                response = requests.post(f"{ollama_url}/api/generate", json=payload, timeout=60)
                 latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
                 bot_reply = response.json().get("response", "No reply.")
                 
@@ -429,11 +432,14 @@ def chat_stream():
         model_name = request.form.get("model_name", "")
         session_id = request.form.get("session_id", "1")
         session_name = request.form.get("session_name", "")
+        # User-supplied Ollama URL (e.g. an ngrok tunnel) lets deployed instances
+        # proxy to the user's local Ollama without changing the server default.
+        ollama_url = request.form.get("ollama_url") or Config.OLLAMA_BASE_URL
 
         # Plugin: before_prompt
         if plugin_manager:
             user_msg = plugin_manager.before_prompt(user_msg)
-            
+
         if is_session_locked(session_id):
             def error_generator_locked():
                 err_msg = "This chat is locked and cannot receive new messages."
@@ -549,7 +555,7 @@ def chat_stream():
                             payload["options"]["seed"] = seed
                         if system_prompt:
                             payload["system"] = system_prompt
-                        response = requests.post(f"{Config.OLLAMA_BASE_URL}/api/generate", json=payload, stream=True, timeout=60)
+                        response = requests.post(f"{ollama_url}/api/generate", json=payload, stream=True, timeout=60)
                         response.raise_for_status()
                         
                         for line in response.iter_lines():
