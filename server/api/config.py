@@ -8,12 +8,8 @@ class Config:
     MONGO_URI = os.getenv("MONGODB_URL", "mongodb://localhost:27017/privgpt")
     ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "gif"}
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your_gemini_api_key")
-    # SECRET_KEY signs and verifies all auth tokens — it must be a real secret,
-    # never a shared/default value. Fail fast if it isn't configured rather than
-    # silently falling back to a publicly-known default (which would let anyone
-    # forge tokens for any user).
-    SECRET_KEY = os.getenv("SECRET_KEY")
-    if not SECRET_KEY:
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+    if not JWT_SECRET_KEY:
         raise RuntimeError(
             "SECRET_KEY environment variable is required (used to sign auth tokens). "
             "Set it in your environment / .env — see server/.env.example."

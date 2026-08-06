@@ -52,7 +52,7 @@ def google_auth():
             'user_id': user_id,
             'email': email,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }, current_app.config['SECRET_KEY'], algorithm='HS256')
+        }, current_app.config['JWT_SECRET_KEY'], algorithm='HS256')
         return jsonify({'token': local_token, 'message': 'Login successful'}), 200
 
     except ValueError as ve:
@@ -152,7 +152,7 @@ def login():
         'user_id': str(user['_id']),
         'email': user['email'],
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-    }, current_app.config['SECRET_KEY'], algorithm='HS256')
+    }, current_app.config['JWT_SECRET_KEY'], algorithm='HS256')
     
     return jsonify({'token': token, 'message': 'Login successful'}), 200
 
@@ -179,7 +179,7 @@ def get_profile():
         return jsonify({'message': 'Token is missing'}), 401
         
     try:
-        data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        data = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         user_id = data['user_id']
         user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
         
@@ -224,7 +224,7 @@ def update_profile():
         return jsonify({'message': 'Token is missing'}), 401
         
     try:
-        data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        data = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         user_id = data['user_id']
         
         update_data = request.get_json()

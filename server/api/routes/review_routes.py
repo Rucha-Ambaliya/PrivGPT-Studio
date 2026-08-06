@@ -27,7 +27,7 @@ def verify_token(request):
         return None
         
     try:
-        data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        data = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         return data
     except:
         return None
