@@ -11,10 +11,17 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/api/auth/google', methods=['POST'])
 def google_auth():
     app_client_id = current_app.config.get('GOOGLE_CLIENT_ID')
-    
+
+    # verify_oauth2_token skips the audience ('aud') check when the audience is
+    # None — which would accept a token minted for ANY Google OAuth client. Refuse
+    # to verify unless the client id is configured, so the audience is always
+    # enforced against this app.
+    if not app_client_id:
+        return jsonify({'message': 'Google Sign-In is not configured on the server'}), 500
+
     data = request.get_json()
     token = data.get("token")
-    
+
     try:
         idinfo = id_token.verify_oauth2_token(token, requests.Request(), app_client_id)
         

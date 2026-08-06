@@ -2521,7 +2521,7 @@ export default function ChatPage() {
   const handleToggleLockSession = async (id: string, currentLocked = false) => {
     if (id === "1") return;
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${id}/lock`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${id}/lock`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2545,7 +2545,7 @@ export default function ChatPage() {
   const handleSetExpiry = async (duration: string | null) => {
     if (!expirySessionId || expirySessionId === "1") return;
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${expirySessionId}/expire`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${expirySessionId}/expire`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
