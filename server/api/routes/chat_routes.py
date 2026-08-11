@@ -240,11 +240,16 @@ def chat():
         if mention_session_ids:
             valid_ids = [ObjectId(m_id) for m_id in mention_session_ids if ObjectId.is_valid(m_id)]
             if valid_ids:
+                mention_user_id = validate_user(request)
                 sessions = mongo.db.sessions.find({"_id": {"$in": valid_ids}})
-                # Optimization: List comprehension + join instead of O(N^2) string concatenation loop
+                # Only pull context from sessions the caller owns — otherwise
+                # anyone could inject another user's conversation into the prompt
+                # by passing its id (IDOR).
                 history_context = "".join(
                     f"{m['role']}: {m['content']}\n"
-                    for s in sessions for m in s.get("messages", [])
+                    for s in sessions
+                    if user_owns_session(s, mention_user_id)
+                    for m in s.get("messages", [])
                 )
         # Handle uploaded file
         if history_context:
@@ -506,11 +511,16 @@ def chat_stream():
         if mention_session_ids:
             valid_ids = [ObjectId(m_id) for m_id in mention_session_ids if ObjectId.is_valid(m_id)]
             if valid_ids:
+                mention_user_id = validate_user(request)
                 sessions = mongo.db.sessions.find({"_id": {"$in": valid_ids}})
-                # Optimization: List comprehension + join instead of O(N^2) string concatenation loop
+                # Only pull context from sessions the caller owns — otherwise
+                # anyone could inject another user's conversation into the prompt
+                # by passing its id (IDOR).
                 history_context = "".join(
                     f"{m['role']}: {m['content']}\n"
-                    for s in sessions for m in s.get("messages", [])
+                    for s in sessions
+                    if user_owns_session(s, mention_user_id)
+                    for m in s.get("messages", [])
                 )
         if history_context:
             combined_input = (
