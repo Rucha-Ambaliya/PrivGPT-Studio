@@ -297,79 +297,46 @@ def chat():
         bot_reply = "No reply."
         latency_ms = 0
         fallback_used = False
-        if model_type == "local":
-            payload = {
-                "model": model_name,
-                "prompt": combined_input,
-                "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "top_p": top_p,
-                    "top_k": top_k,
-                    "num_predict": max_tokens,
-                    "frequency_penalty": frequency_penalty,
-                    "presence_penalty": presence_penalty,
-                }
-            }
-            if stop_sequence:
-                payload["options"]["stop"] = [stop_sequence]
-            if seed is not None:
-                payload["options"]["seed"] = seed
-            if system_prompt:
-                payload["system"] = system_prompt
-            try:
-                latency_ms = datetime.now()
-                response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=60)
-                latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
-                bot_reply = response.json().get("response", "No reply.")
-                
-                # Plugin: after_response
-                if plugin_manager:
-                    bot_reply = plugin_manager.after_response(bot_reply)
-            except Exception as e:
-                # Fallback to gemini if available & requested
+        
+        from api.services.model_providers import ModelFactory
+        kwargs = {
+            "temperature": temperature,
+            "top_p": top_p,
+            "top_k": top_k,
+            "max_tokens": max_tokens,
+            "frequency_penalty": frequency_penalty,
+            "presence_penalty": presence_penalty,
+            "stop_sequence": stop_sequence,
+            "seed": seed,
+            "system_prompt": system_prompt
+        }
+        
+        try:
+            latency_ms = datetime.now()
+            provider = ModelFactory.get_provider(model_type)
+            bot_reply = provider.generate(combined_input, model_name, **kwargs)
+            latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
+            
+            # Plugin: after_response
+            if plugin_manager:
+                bot_reply = plugin_manager.after_response(bot_reply)
+        except Exception as e:
+            if model_type == "local":
+                # Fallback to gemini
                 try:
-                    if gemini_model:
-                        fallback_used = True
-                        model_type = "cloud"
-                        model_name = "gemini"
-                        latency_ms = datetime.now()
-                        # Use model with system instruction if provided
-                        if system_prompt:
-                            model_with_system = genai.GenerativeModel(
-                                "models/gemini-2.5-flash",
-                                system_instruction=system_prompt
-                            )
-                            response = model_with_system.generate_content(combined_input, generation_config=generation_config)
-                        else:
-                            response = gemini_model.generate_content(combined_input, generation_config=generation_config)
-                        latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
-                        bot_reply = response.text or f"Local model failed, fallback used: {str(e)}"
-                    else:
-                        bot_reply = f"Local model error (no fallback): {str(e)}"
-                except Exception as inner_e:
-                    bot_reply = f"Local & fallback error: {str(e)} | Fallback: {str(inner_e)}"
-        else:
-            try:
-                if model_name == "gemini":
-                    print(combined_input)
+                    fallback_used = True
+                    model_type = "cloud"
+                    model_name = "gemini"
                     latency_ms = datetime.now()
-                    # Use model with system instruction if provided
-                    if system_prompt:
-                        model_with_system = genai.GenerativeModel(
-                            "models/gemini-2.5-flash",
-                            system_instruction=system_prompt
-                        )
-                        response = model_with_system.generate_content(combined_input, generation_config=generation_config)
-                    else:
-                        response = gemini_model.generate_content(combined_input, generation_config=generation_config)
+                    provider = ModelFactory.get_provider("cloud")
+                    bot_reply = provider.generate(combined_input, model_name, **kwargs)
                     latency_ms = int((datetime.now() - latency_ms).total_seconds() * 1000)
-                    bot_reply = response.text or "No Reply"
                     
-                    # Plugin: after_response
                     if plugin_manager:
                         bot_reply = plugin_manager.after_response(bot_reply)
-            except Exception as e:
+                except Exception as inner_e:
+                    bot_reply = f"Local & fallback error: {str(e)} | Fallback: {str(inner_e)}"
+            else:
                 bot_reply = f"Cloud model error: {str(e)}"
 
         # ====== Message Format ======
@@ -566,120 +533,47 @@ def chat_stream():
             yield f"data: {json.dumps({'type': 'session_info', 'session_id': session_id})}\n\n"
             
             try:
-                if model_type == "local":
-                    try:
-                        payload = {
-                            "model": model_name,
-                            "prompt": combined_input,
-                            "stream": True,
-                            "options": {
-                                "temperature": temperature,
-                                "top_p": top_p,
-                                "top_k": top_k,
-                                "num_predict": max_tokens,
-                                "frequency_penalty": frequency_penalty,
-                                "presence_penalty": presence_penalty,
-                            }
-                        }
-                        if stop_sequence:
-                            payload["options"]["stop"] = [stop_sequence]
-                        if seed is not None:
-                            payload["options"]["seed"] = seed
-                        if system_prompt:
-                            payload["system"] = system_prompt
-                        response = requests.post("http://localhost:11434/api/generate", json=payload, stream=True, timeout=60)
-                        response.raise_for_status()
-                        
-                        for line in response.iter_lines():
-                            if line:
-                                try:
-                                    chunk_data = json.loads(line.decode('utf-8'))
-                                    chunk_text = chunk_data.get("response", "")
-                                    if chunk_text:
-                                        bot_reply += chunk_text
-                                        yield f"data: {json.dumps({'type': 'chunk', 'text': chunk_text})}\n\n"
-                                    
-                                    if chunk_data.get("done", False):
-                                        break
-                                except json.JSONDecodeError:
-                                    continue
-                                except GeneratorExit:
-                                    break
-                    except Exception as e:
-                        # Fallback to gemini streaming
-                        if gemini_model:
-                            fallback_msg = f"[Local model failed, switching to gemini: {str(e)}]\n"
-                            bot_reply += fallback_msg
-                            yield f"data: {json.dumps({'type': 'chunk', 'text': fallback_msg})}\n\n"
-                            try:
-                                # Use model with system instruction if provided
-                                if system_prompt:
-                                    model_with_system = genai.GenerativeModel(
-                                        "models/gemini-2.5-flash",
-                                        system_instruction=system_prompt
-                                    )
-                                    response = model_with_system.generate_content(
-                                        combined_input,
-                                        generation_config=generation_config,
-                                        stream=True
-                                    )
-                                else:
-                                    response = gemini_model.generate_content(
-                                        combined_input,
-                                        generation_config=generation_config,
-                                        stream=True
-                                    )
-                                for chunk in response:
-                                    try:
-                                        chunk_text = chunk.text if chunk.text else ""
-                                        if chunk_text:
-                                            bot_reply += chunk_text
-                                            yield f"data: {json.dumps({'type': 'chunk', 'text': chunk_text})}\n\n"
-                                    except GeneratorExit:
-                                        break
-                            except Exception as ge:
-                                err_txt = f"[Fallback gemini error: {str(ge)}]"
-                                bot_reply += err_txt
-                                yield f"data: {json.dumps({'type': 'error', 'message': err_txt})}\n\n"
-                        else:
-                            err_txt = f"[Local model error and no fallback: {str(e)}]"
+                from api.services.model_providers import ModelFactory
+                kwargs = {
+                    "temperature": temperature,
+                    "top_p": top_p,
+                    "top_k": top_k,
+                    "max_tokens": max_tokens,
+                    "frequency_penalty": frequency_penalty,
+                    "presence_penalty": presence_penalty,
+                    "stop_sequence": stop_sequence,
+                    "seed": seed,
+                    "system_prompt": system_prompt
+                }
+                
+                provider = ModelFactory.get_provider(model_type)
+                
+                try:
+                    for chunk_text in provider.generate_stream(combined_input, model_name, **kwargs):
+                        bot_reply += chunk_text
+                        yield f"data: {json.dumps({'type': 'chunk', 'text': chunk_text})}\n\n"
+                except Exception as e:
+                    if model_type == "local":
+                        # Fallback to gemini
+                        fallback_msg = f"[Local model failed, switching to gemini: {str(e)}]\n"
+                        bot_reply += fallback_msg
+                        yield f"data: {json.dumps({'type': 'chunk', 'text': fallback_msg})}\n\n"
+                        try:
+                            fallback_provider = ModelFactory.get_provider("cloud")
+                            for chunk_text in fallback_provider.generate_stream(combined_input, "gemini", **kwargs):
+                                bot_reply += chunk_text
+                                yield f"data: {json.dumps({'type': 'chunk', 'text': chunk_text})}\n\n"
+                        except Exception as ge:
+                            err_txt = f"[Fallback gemini error: {str(ge)}]"
                             bot_reply += err_txt
                             yield f"data: {json.dumps({'type': 'error', 'message': err_txt})}\n\n"
-                                
-                else:  # Cloud model (Gemini)
-                    if model_name == "gemini":
-                        # Gemini streaming
-                        # Use model with system instruction if provided
-                        if system_prompt:
-                            model_with_system = genai.GenerativeModel(
-                                "models/gemini-2.5-flash",
-                                system_instruction=system_prompt
-                            )
-                            response = model_with_system.generate_content(
-                                combined_input,
-                                generation_config=generation_config,
-                                stream=True
-                            )
-                        else:
-                            response = gemini_model.generate_content(
-                                combined_input,
-                                generation_config=generation_config,
-                                stream=True
-                            )
-
-                        for chunk in response:
-                            try:
-                                chunk_text = chunk.text if chunk.text else ""
-                                if chunk_text:
-                                    bot_reply += chunk_text
-                                    yield f"data: {json.dumps({'type': 'chunk', 'text': chunk_text})}\n\n"
-                            except GeneratorExit:
-                                # Handle client disconnect/stop generation
-                                break
-                    
+                    else:
+                        error_msg = f"Error: {str(e)}"
+                        bot_reply += error_msg
+                        yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
             except Exception as e:
                 error_msg = f"Error: {str(e)}"
-                bot_reply = error_msg
+                bot_reply += error_msg
                 yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
             
             # Calculate latency
