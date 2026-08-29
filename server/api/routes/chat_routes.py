@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from api import gemini_model, mongo, plugin_manager
 from bson import ObjectId
 from api.utils.file_utils import allowed_file, extract_text_from_pdf_bytes
+from api.utils.search_utils import search_session_messages
 import json
 import google.generativeai as genai
 from api.config import Config
@@ -795,6 +796,60 @@ def chat_history():
         result.append(session)
 
     return jsonify(result)
+
+
+@chat_bp.route("/chat/search", methods=["POST"])
+def search_chats():
+    """
+    Search across the caller's own sessions and return matching sessions with
+    short context snippets around each match.
+
+    Returns:
+    JSON: {"results": [{"session_id", "session_name", "snippets": [...]}, ...]}
+    """
+    data = request.json or {}
+    query = data.get("query", "")
+    if not isinstance(query, str) or not query.strip():
+        return jsonify({"results": []})
+
+    user_id = validate_user(request)
+
+    # Gather the caller's own sessions, mirroring chat_history's ownership guard.
+    if user_id:
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        if user and "chat_sessions" in user:
+            try:
+                user_session_ids = [ObjectId(sid) for sid in user["chat_sessions"] if ObjectId.is_valid(sid)]
+                sessions = mongo.db.sessions.find({"_id": {"$in": user_session_ids}}).sort("created_at", -1)
+            except Exception:
+                sessions = []
+        else:
+            sessions = []
+    else:
+        id_list = data.get("session_ids", [])
+        try:
+            object_ids = [ObjectId(sid) for sid in id_list]
+        except Exception:
+            return jsonify({"error": "Invalid session ID format"}), 400
+
+        sessions = mongo.db.sessions.find({
+            "_id": {"$in": object_ids},
+            "user_id": None  # Strict check: guest can only search guest chats
+        }).sort("created_at", -1)
+
+    results = []
+    for session in sessions:
+        snippets = search_session_messages(session.get("messages", []), query)
+        if snippets:
+            results.append({
+                "session_id": str(session["_id"]),
+                "session_name": session.get("session_name", ""),
+                "snippets": snippets,
+            })
+
+    return jsonify({"results": results})
+
+
 @chat_bp.route("/chat/<session_id>", methods=["GET"])
 def get_session_messages(session_id):
     """
